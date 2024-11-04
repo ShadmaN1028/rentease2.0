@@ -7,6 +7,7 @@ const app = express();
 
 const tenantUsersRouter = require("./api/v1/tenant/users/routers/users");
 const OwnerUsersRouter = require("./api/v1/owner/users/routers/users");
+const OwnerBuildingsRouter = require("./api/v1/owner/buildings/routers/owner-buildings");
 
 app.use(express.json());
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
@@ -14,6 +15,7 @@ app.use(cookieParser());
 
 app.use("/api/v1/", tenantUsersRouter);
 app.use("/api/v1/", OwnerUsersRouter);
+app.use("/api/v1/", OwnerBuildingsRouter);
 
 app.listen(port, () => {
   console.log(`server is running on port ${port}`);
