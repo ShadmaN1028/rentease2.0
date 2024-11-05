@@ -225,7 +225,7 @@ router.delete(
   }
 );
 
-router.post("/owner/search", authenticateUser, async (req, res) => {
+router.post("/owner/search-buildings", authenticateUser, async (req, res) => {
   const token = req.cookies.token;
   const searchTerm = req.query.q;
   try {
