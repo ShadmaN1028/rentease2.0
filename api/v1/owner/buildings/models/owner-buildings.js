@@ -35,6 +35,18 @@ const owner_buildings = {
       ]);
       return buildings;
     } catch (error) {
+      console.error("Get building info error:", error);
+      throw error;
+    }
+  },
+  getBuildingInfo: async (owner_id, building_id) => {
+    try {
+      const [buildingInfo] = await connection.query(queries.getBuildingInfo, [
+        owner_id,
+        building_id,
+      ]);
+      return buildingInfo;
+    } catch (error) {
       console.error("Get buildings error:", error);
       throw error;
     }

@@ -108,6 +108,56 @@ router.get("/owner/buildings", authenticateUser, async (req, res) => {
   }
 });
 
+router.get(
+  "/owner/buildings/:building_id",
+  authenticateUser,
+  async (req, res) => {
+    const token = req.cookies.token;
+    const { building_id } = req.params;
+    if (!token) {
+      return res
+        .status(401)
+        .json({ success: false, message: "No token found" });
+    }
+
+    try {
+      if (isEmpty(req.user.owner_id)) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized" });
+      }
+
+      const decoded = verifyTokenOwner(token);
+      if (req.user.owner_id !== decoded.owner_id) {
+        return res.status(401).json({
+          status: 401,
+          success: false,
+          message: "Unauthorized to view info",
+        });
+      }
+      if (decoded) {
+        const buildingInfo = await buildings.getBuildingInfo(
+          decoded.owner_id,
+          building_id
+        );
+        return res.status(200).json({
+          success: true,
+          data: buildingInfo,
+        });
+      } else {
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid token" });
+      }
+    } catch (error) {
+      console.error("Error fetching building info:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  }
+);
+
 router.put(
   "/owner/building/:building_id",
   authenticateUser,

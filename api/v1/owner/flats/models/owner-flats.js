@@ -1,5 +1,6 @@
 const connection = require("../../../connection/connection");
 const queries = require("../queries/owner-flats");
+const { v4: uuidv4 } = require("uuid");
 
 const owner_flats = {
   addBuilding: async (
@@ -111,6 +112,47 @@ const owner_flats = {
       return results;
     } catch (error) {
       throw error;
+    }
+  },
+  generateFlatCode: async (flats_id, owner_id) => {
+    try {
+      const code = uuidv4().slice(0, 8);
+      const [results] = await connection.query(queries.generateFlatCode, [
+        flats_id,
+        code,
+        owner_id,
+        owner_id,
+      ]);
+      return results;
+    } catch (error) {
+      console.error("Generating flat code error:", error);
+      throw error;
+    }
+  },
+  checkExistingFlatCode: async (flats_id) => {
+    try {
+      // Fetch owner from the database
+      const [code] = await connection.query(queries.checkExistingFlatCode, [
+        flats_id,
+      ]);
+
+      // Check if user exists
+      if (code.length === 0) {
+        return false; // code does not exist
+      } else {
+        return true; // code exists
+      }
+    } catch (error) {
+      console.error("code check error:", error);
+      throw error;
+    }
+  },
+  getFlatCode: async (flats_id) => {
+    try {
+      const [code] = await connection.query(queries.getFlatCode, [flats_id]);
+      return code[0] || null;
+    } catch (error) {
+      console.error("Get flat code error:", error);
     }
   },
 };

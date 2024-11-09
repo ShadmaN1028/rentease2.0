@@ -318,4 +318,98 @@ router.post("/owner/search-flats", authenticateUser, async (req, res) => {
   }
 });
 
+router.post(
+  "/owner/flats/generate-code/:flats_id",
+  authenticateUser,
+  async (req, res) => {
+    const token = req.cookies.token;
+    const { flats_id } = req.params;
+
+    if (!token) {
+      return res
+        .status(401)
+        .json({ success: false, message: "No token found" });
+    }
+    try {
+      if (isEmpty(req.user.owner_id)) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized" });
+      }
+
+      const decoded = verifyTokenOwner(token);
+      if (!decoded) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid token" });
+      }
+      const existingCheck = await flats.checkExistingFlatCode(flats_id);
+
+      if (existingCheck) {
+        return res.status(409).json({
+          success: false,
+          status: 409,
+          message: "code already exists.",
+        });
+      }
+      const result = await flats.generateFlatCode(
+        flats_id,
+        decoded.owner_id,
+        decoded.owner_id
+      );
+      return res.status(200).json({
+        success: true,
+        ...result,
+      });
+    } catch (error) {
+      console.error("Error generating flat code:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  }
+);
+
+router.get(
+  "/owner/flats/code/:flats_id",
+  authenticateUser,
+  async (req, res) => {
+    const token = req.cookies.token;
+    const { flats_id } = req.params;
+    if (!token) {
+      return res
+        .status(401)
+        .json({ success: false, message: "No token found" });
+    }
+
+    try {
+      if (isEmpty(req.user.owner_id)) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized" });
+      }
+
+      const decoded = verifyTokenOwner(token);
+      if (decoded) {
+        const flatCode = await flats.getFlatCode(flats_id);
+        return res.status(200).json({
+          success: true,
+          data: flatCode,
+        });
+      } else {
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid token" });
+      }
+    } catch (error) {
+      console.error("Error fetching flat code:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  }
+);
+
 module.exports = router;
