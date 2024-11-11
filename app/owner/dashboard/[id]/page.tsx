@@ -26,7 +26,7 @@ export default function BuildingPage() {
 
   const fetchBuildingDetails = async () => {
     try {
-      const response = await fetch(`/api/owner/buildings/${buildingId}`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/buildings/${buildingId}`)
       if (response.ok) {
         const data = await response.json()
         setFlats(data.flats)

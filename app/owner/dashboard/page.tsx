@@ -26,7 +26,7 @@ export default function OwnerDashboard() {
 
   const fetchBuildings = async () => {
     try {
-      const response = await fetch('/api/owner/buildings')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/buildings`)
       if (response.ok) {
         const data = await response.json()
         setBuildings(data.data)

@@ -29,11 +29,8 @@ export default function SignIn() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.userType === "owner") {
-          router.push("/owner/dashboard");
-        } else {
+        
           router.push("/tenant/dashboard");
-        }
       } else {
         setError("Invalid email or password");
       }
