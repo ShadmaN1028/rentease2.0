@@ -175,7 +175,7 @@ export default function AddBuilding() {
     setError('')
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/buildings`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/add-building`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -194,9 +194,13 @@ export default function AddBuilding() {
         router.push('/signin/owner')
       } else {
         setError('An error occurred while adding the building. Please try again.')
+        console.log(Error)
+        router.push('/owner/dashboard')
       }
+
     } catch (error) {
       setError('An error occurred. Please try again.')
+      console.log(Error)
     }
   }
 

@@ -1,138 +1,149 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+// import { toast } from "@/components/ui/use-toast"
+import { Search, Home, DollarSign, MapPin } from 'lucide-react'
 
 interface Flat {
   flat_id: string
-  flat_name: string
+  flat_number: string
+  building_name: string
   area: number
-  location: string
+  address: string
+  rooms: number
+  baths: number
+  balcony: number
   rent: number
-  tenancy_type: string
+  description: string
+  status: 'available' | 'rented'
+  publish_date: string
 }
 
 export default function TenantDashboard() {
-  const [searchCriteria, setSearchCriteria] = useState({
-    room_no: '',
-    area: '',
-    location: '',
-    rent: '',
-    tenancy_type: '',
-  })
   const [flats, setFlats] = useState<Flat[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedFlat, setSelectedFlat] = useState<Flat | null>(null)
   const router = useRouter()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchCriteria({ ...searchCriteria, [e.target.name]: e.target.value })
-  }
+  useEffect(() => {
+    fetchFlats()
+  }, [])
 
-  const handleSelectChange = (value: string) => {
-    setSearchCriteria({ ...searchCriteria, tenancy_type: value })
-  }
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const fetchFlats = async () => {
     try {
-      const queryParams = new URLSearchParams(searchCriteria).toString()
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/search-flats?${queryParams}`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/available-flats`, {
+        credentials: 'include',
+      })
       if (response.ok) {
         const data = await response.json()
         setFlats(data.flats)
       } else {
-        console.error('Failed to fetch flats')
+        throw new Error('Failed to fetch flats')
       }
     } catch (error) {
-      console.error('Error searching flats:', error)
+      console.error('Error fetching flats:', error)
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to load available flats. Please try again.",
+      //   variant: "destructive",
+      // })
+    }
+  }
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value.toLowerCase())
+  }
+
+  const filteredFlats = flats.filter(flat => 
+    flat.address.toLowerCase().includes(searchTerm) ||
+    flat.area.toString().includes(searchTerm) ||
+    flat.rent.toString().includes(searchTerm)
+  )
+
+  const handleApply = async (flatId: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/apply/${flatId}`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (response.ok) {
+        // toast({
+        //   title: "Application Submitted",
+        //   description: "Your application has been sent to the owner.",
+        // })
+      } else {
+        throw new Error('Failed to submit application')
+      }
+    } catch (error) {
+      console.error('Error applying for flat:', error)
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to submit application. Please try again.",
+      //   variant: "destructive",
+      // })
     }
   }
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Tenant Dashboard</h1>
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Search Flats</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSearch} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="room_no">Room Number</Label>
-                <Input
-                  id="room_no"
-                  name="room_no"
-                  value={searchCriteria.room_no}
-                  onChange={handleChange}
-                />
-              </div>
-              <div>
-                <Label htmlFor="area">Area (sq ft)</Label>
-                <Input
-                  id="area"
-                  name="area"
-                  type="number"
-                  value={searchCriteria.area}
-                  onChange={handleChange}
-                />
-              </div>
-              <div>
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  name="location"
-                  value={searchCriteria.location}
-                  onChange={handleChange}
-                />
-              </div>
-              <div>
-                <Label htmlFor="rent">Max Rent</Label>
-                <Input
-                  id="rent"
-                  name="rent"
-                  type="number"
-                  value={searchCriteria.rent}
-                  onChange={handleChange}
-                />
-              </div>
-              <div>
-                <Label htmlFor="tenancy_type">Tenancy Type</Label>
-                <Select onValueChange={handleSelectChange} value={searchCriteria.tenancy_type}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tenancy type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Any</SelectItem>
-                    <SelectItem value="bachelor">Bachelor</SelectItem>
-                    <SelectItem value="family">Family</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button type="submit">Search</Button>
-          </form>
-        </CardContent>
-      </Card>
+      <h1 className="text-2xl font-bold mb-4">Available Flats</h1>
+      <div className="mb-4">
+        <div className="relative">
+          <Input
+            type="text"
+            placeholder="Search by area, address, or rent..."
+            value={searchTerm}
+            onChange={handleSearch}
+            className="pl-10 pr-4 py-2 w-full"
+          />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {flats.map((flat) => (
-          <Card key={flat.flat_id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push(`/tenant/flat/${flat.flat_id}`)}>
+        {filteredFlats.map((flat) => (
+          <Card key={flat.flat_id} className="flex flex-col">
             <CardHeader>
-              <CardTitle>{flat.flat_name}</CardTitle>
+              <CardTitle>{flat.building_name} - Flat {flat.flat_number}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p><strong>Area:</strong> {flat.area} sq ft</p>
-              <p><strong>Location:</strong> {flat.location}</p>
-              <p><strong>Rent:</strong> ${flat.rent}/month</p>
-              <p><strong>Tenancy Type:</strong> {flat.tenancy_type}</p>
+            <CardContent className="flex-grow">
+              <p className="flex items-center"><MapPin className="mr-2 h-4 w-4" /> {flat.address}</p>
+              <p className="flex items-center"><Home className="mr-2 h-4 w-4" /> {flat.area} sq ft</p>
+              <p className="flex items-center"><DollarSign className="mr-2 h-4 w-4" /> ${flat.rent}/month</p>
             </CardContent>
+            <CardFooter className="flex justify-between">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" onClick={() => setSelectedFlat(flat)}>See More</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{flat.building_name} - Flat {flat.flat_number}</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-2">
+                    <p><strong>Address:</strong> {flat.address}</p>
+                    <p><strong>Area:</strong> {flat.area} sq ft</p>
+                    <p><strong>Rooms:</strong> {flat.rooms}</p>
+                    <p><strong>Bathrooms:</strong> {flat.baths}</p>
+                    <p><strong>Balconies:</strong> {flat.balcony}</p>
+                    <p><strong>Rent:</strong> ${flat.rent}/month</p>
+                    <p><strong>Description:</strong> {flat.description}</p>
+                    <p><strong>Published:</strong> {new Date(flat.publish_date).toLocaleDateString()}</p>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Button onClick={() => handleApply(flat.flat_id)}>Apply</Button>
+            </CardFooter>
           </Card>
         ))}
       </div>
+      {filteredFlats.length === 0 && (
+        <p className="text-center mt-4">No flats found matching your search criteria.</p>
+      )}
     </div>
   )
 }
