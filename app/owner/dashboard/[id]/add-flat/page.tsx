@@ -1,17 +1,24 @@
 'use client'
 
-import { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
-export default function AddFlatPage() {
-  const { buildingId } = useParams()
+interface AddFlatPageProps {
+  params: {
+    buildingId: string
+  }
+}
+
+export default function AddFlatPage({ params }: AddFlatPageProps) {
   const router = useRouter()
+  const [buildingId, setBuildingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     flat_name: '',
     area: '',
@@ -22,6 +29,15 @@ export default function AddFlatPage() {
     rent: '',
     tenancy_type: '',
   })
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (params.buildingId) {
+      setBuildingId(params.buildingId)
+    } else {
+      setError('Building ID is missing. Please go back to the dashboard and try again.')
+    }
+  }, [params.buildingId])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -33,11 +49,19 @@ export default function AddFlatPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
+
+    if (!buildingId) {
+      setError('Building ID is missing. Please go back to the dashboard and try again.')
+      return
+    }
+
     try {
       const response = await fetch(`/api/owner/buildings/${buildingId}/flats`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(formData),
       })
@@ -45,18 +69,37 @@ export default function AddFlatPage() {
       if (response.ok) {
         router.push(`/owner/dashboard/${buildingId}`)
       } else {
-        console.error('Failed to add flat')
+        const data = await response.json()
+        throw new Error(data.message || 'Failed to add flat')
       }
     } catch (error) {
       console.error('Error adding flat:', error)
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred')
     }
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-4">
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button className="mt-4" onClick={() => router.push('/owner/dashboard')}>
+          Back to Dashboard
+        </Button>
+      </div>
+    )
+  }
+
+  if (!buildingId) {
+    return <div className="container mx-auto p-4">Loading...</div>
   }
 
   return (
     <div className="container mx-auto p-4">
       <Card>
         <CardHeader>
-          <CardTitle>Add New Flat</CardTitle>
+          <CardTitle>Add New Flat to Building {buildingId}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

@@ -26,6 +26,7 @@ export default function SignIn() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ owner_email, owner_password }),
+        credentials: 'include'
       });
       if (res.ok) {
         const data = await res.json();
