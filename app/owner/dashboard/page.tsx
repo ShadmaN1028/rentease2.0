@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Search, Plus, Building } from 'lucide-react'
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+
 
 interface Building {
   building_id: string
@@ -27,15 +28,14 @@ export default function OwnerDashboard() {
   })
   const [isSearching, setIsSearching] = useState(false)
   const router = useRouter()
-  const { toast } = useToast()
-
+  
   useEffect(() => {
     fetchBuildings()
   }, [])
 
   const fetchBuildings = async () => {
     try {
-      const response = await fetch('/api/owner/buildings', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/buildings`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -43,16 +43,17 @@ export default function OwnerDashboard() {
       if (response.ok) {
         const data = await response.json()
         setBuildings(data.buildings)
+        console.log(data)
       } else {
         throw new Error('Failed to fetch buildings')
       }
     } catch (error) {
       console.error('Error fetching buildings:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch buildings. Please try again.",
-        variant: "destructive",
-      })
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to fetch buildings. Please try again.",
+      //   variant: "destructive",
+      // })
     }
   }
 
@@ -61,7 +62,7 @@ export default function OwnerDashboard() {
     setIsSearching(true)
     try {
       const queryParams = new URLSearchParams(searchCriteria).toString()
-      const response = await fetch(`/api/owner/buildings/search?${queryParams}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/buildings/search?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -74,11 +75,11 @@ export default function OwnerDashboard() {
       }
     } catch (error) {
       console.error('Error searching buildings:', error)
-      toast({
-        title: "Error",
-        description: "Failed to search buildings. Please try again.",
-        variant: "destructive",
-      })
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to search buildings. Please try again.",
+      //   variant: "destructive",
+      // })
     }
   }
 
