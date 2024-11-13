@@ -13,6 +13,17 @@ const tenant_dashboard = {
       throw error;
     }
   },
+  getAvailableFlats: async () => {
+    try {
+      const [availableflats] = await connection.query(
+        queries.getAvailableFlats
+      );
+      return availableflats;
+    } catch (error) {
+      console.error("Get flats error:", error);
+      throw error;
+    }
+  },
 };
 
 module.exports = tenant_dashboard;

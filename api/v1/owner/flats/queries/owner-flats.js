@@ -11,6 +11,7 @@ const queries = {
   generateFlatCode: `INSERT INTO ${codes_table} (flats_id, code, created_by, creation_date, last_updated_by, last_update_date, change_number) VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, 1)`,
   checkExistingFlatCode: `SELECT * FROM ${codes_table} WHERE flats_id = ?`,
   getFlatCode: `SELECT code FROM ${codes_table} WHERE flats_id = ?`,
+  deleteFlatCode: `DELETE FROM ${codes_table} WHERE flats_id = ?`,
 };
 
 module.exports = queries;

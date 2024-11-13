@@ -3,9 +3,24 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
@@ -17,9 +32,9 @@ interface Flat {
   bath: number;
   balcony: number;
   description: string;
-  status: "rented" | "available";
+  status: number;
   rent: number;
-  tenancy_type: string;
+  tenancy_type: number;
 }
 
 interface BuildingDetails {
@@ -32,6 +47,8 @@ export default function BuildingPage({ params }: { params: { id: string } }) {
     useState<BuildingDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingFlat, setEditingFlat] = useState<Flat | null>(null);
+  const [flatCodes, setFlatCodes] = useState<Record<string, string>>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -44,7 +61,6 @@ export default function BuildingPage({ params }: { params: { id: string } }) {
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API}/owner/flats-list/${params.id}`,
-
         {
           method: "GET",
           credentials: "include",
@@ -68,7 +84,6 @@ export default function BuildingPage({ params }: { params: { id: string } }) {
           building_name: buildingName,
           flats: data.data,
         });
-        console.log(data.data);
       } else {
         throw new Error("Invalid data structure");
       }
@@ -83,6 +98,106 @@ export default function BuildingPage({ params }: { params: { id: string } }) {
       setIsLoading(false);
     }
   };
+
+  const handleEditFlat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFlat) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/owner/flats/${editingFlat.flats_id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(editingFlat),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update flat");
+      }
+
+      setEditingFlat(null);
+      fetchBuildingDetails();
+    } catch (error) {
+      console.error("Error updating flat:", error);
+    }
+  };
+
+  const handleDeleteFlat = async (flatId: string) => {
+    if (!confirm("Are you sure you want to delete this flat?")) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/owner/flats/${flatId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete flat");
+      }
+
+      fetchBuildingDetails();
+    } catch (error) {
+      console.error("Error deleting flat:", error);
+    }
+  };
+
+  const handleGenerateCode = async (flatId: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/owner/flats/generate-code/${flatId}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to generate code");
+      }
+
+      fetchFlatCode(flatId);
+    } catch (error) {
+      console.error("Error generating code:", error);
+    }
+  };
+
+  const fetchFlatCode = async (flatId: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/owner/flats/code/${flatId}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch flat code");
+      }
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        setFlatCodes((prev) => ({ ...prev, [flatId]: data.data.code }));
+      }
+    } catch (error) {
+      console.error("Error fetching flat code:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (buildingDetails?.flats) {
+      buildingDetails.flats.forEach((flat) => {
+        if (!flatCodes[flat.flats_id]) {
+          fetchFlatCode(flat.flats_id);
+        }
+      });
+    }
+  }, [buildingDetails]);
 
   if (isLoading) {
     return <div className="container mx-auto p-4">Loading...</div>;
@@ -122,9 +237,7 @@ export default function BuildingPage({ params }: { params: { id: string } }) {
           {buildingDetails.flats.map((flat) => (
             <Card
               key={flat.flats_id}
-              className={
-                flat.status === "rented" ? "bg-green-50" : "bg-yellow-50"
-              }
+              className={flat.status === 1 ? "bg-green-50" : "bg-yellow-50"}
             >
               <CardHeader>
                 <CardTitle>Flat {flat.flat_number}</CardTitle>
@@ -143,15 +256,181 @@ export default function BuildingPage({ params }: { params: { id: string } }) {
                   <strong>Balconies:</strong> {flat.balcony}
                 </p>
                 <p>
-                  <strong>Status:</strong> {flat.status}
+                  <strong>Status:</strong>{" "}
+                  {flat.status === 1 ? "Occupied" : "Vacant"}
                 </p>
                 <p>
                   <strong>Rent:</strong> ${flat.rent}
                 </p>
                 <p>
-                  <strong>Tenancy Type:</strong> {flat.tenancy_type}
+                  <strong>Tenancy Type:</strong>{" "}
+                  {flat.tenancy_type === 1 ? "Family" : "Bachelor"}
                 </p>
               </CardContent>
+              <CardFooter className="flex justify-between">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditingFlat(flat)}
+                    >
+                      <Edit className="mr-2 h-4 w-4" /> Edit
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Edit Flat</DialogTitle>
+                    </DialogHeader>
+                    <form
+                      onSubmit={handleEditFlat}
+                      className="space-y-4 overflow-y-scroll max-h-screen"
+                    >
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="area">Area (sq ft)</Label>
+                          <Input
+                            id="area"
+                            value={editingFlat?.area}
+                            onChange={(e) =>
+                              setEditingFlat((prev) => ({
+                                ...prev!,
+                                area: Number(e.target.value),
+                              }))
+                            }
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="rooms">Rooms</Label>
+                          <Input
+                            id="rooms"
+                            value={editingFlat?.rooms}
+                            onChange={(e) =>
+                              setEditingFlat((prev) => ({
+                                ...prev!,
+                                rooms: Number(e.target.value),
+                              }))
+                            }
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="bath">Bathrooms</Label>
+                          <Input
+                            id="bath"
+                            value={editingFlat?.bath}
+                            onChange={(e) =>
+                              setEditingFlat((prev) => ({
+                                ...prev!,
+                                bath: Number(e.target.value),
+                              }))
+                            }
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="balcony">Balconies</Label>
+                          <Input
+                            id="balcony"
+                            value={editingFlat?.balcony}
+                            onChange={(e) =>
+                              setEditingFlat((prev) => ({
+                                ...prev!,
+                                balcony: Number(e.target.value),
+                              }))
+                            }
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="rent">Rent</Label>
+                          <Input
+                            id="rent"
+                            value={editingFlat?.rent}
+                            onChange={(e) =>
+                              setEditingFlat((prev) => ({
+                                ...prev!,
+                                rent: Number(e.target.value),
+                              }))
+                            }
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="status">Status</Label>
+                          <select
+                            id="status"
+                            value={editingFlat?.status}
+                            onChange={(e) =>
+                              setEditingFlat((prev) => ({
+                                ...prev!,
+                                status: Number(e.target.value),
+                              }))
+                            }
+                            className="w-full p-2 border rounded"
+                            required
+                          >
+                            <option value={0}>Vacant</option>
+                            <option value={1}>Occupied</option>
+                          </select>
+                        </div>
+                        <div>
+                          <Label htmlFor="tenancy_type">Tenancy Type</Label>
+                          <select
+                            id="tenancy_type"
+                            value={editingFlat?.tenancy_type}
+                            onChange={(e) =>
+                              setEditingFlat((prev) => ({
+                                ...prev!,
+                                tenancy_type: Number(e.target.value),
+                              }))
+                            }
+                            className="w-full p-2 border rounded"
+                            required
+                          >
+                            <option value={1}>Family</option>
+                            <option value={2}>Bachelor</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="description">Description</Label>
+                        <textarea
+                          id="description"
+                          value={editingFlat?.description}
+                          onChange={(e) =>
+                            setEditingFlat((prev) => ({
+                              ...prev!,
+                              description: e.target.value,
+                            }))
+                          }
+                          className="w-full p-2 border rounded"
+                          rows={3}
+                          required
+                        />
+                      </div>
+                      <Button type="submit">Save Changes</Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDeleteFlat(flat.flats_id)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </Button>
+              </CardFooter>
+              <CardFooter>
+                {flatCodes[flat.flats_id] ? (
+                  <p>
+                    <strong>Flat Code:</strong> {flatCodes[flat.flats_id]}
+                  </p>
+                ) : (
+                  <Button onClick={() => handleGenerateCode(flat.flats_id)}>
+                    Generate Flat Code
+                  </Button>
+                )}
+              </CardFooter>
             </Card>
           ))}
         </div>

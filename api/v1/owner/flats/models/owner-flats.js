@@ -93,6 +93,7 @@ const owner_flats = {
   },
   deleteFlats: async (flats_id) => {
     try {
+      await connection.query(queries.deleteFlatCode, [flats_id]);
       await connection.query(queries.deleteFlats, [flats_id]);
       return { deleted: true, message: "flat deleted" };
     } catch (error) {
