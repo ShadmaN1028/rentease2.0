@@ -48,6 +48,8 @@ const owner_applications = {
       // 4. Update building vacancies
       await conn.query(queries.updateVacancies, [building_id, owner_id]);
 
+      await conn.query(queries.removeApplications, [user_id]);
+
       // 5. Start tenancy
       await conn.query(queries.startTenancy, [
         flats_id,
@@ -87,6 +89,17 @@ const owner_applications = {
       };
     } catch (error) {
       console.error("Deny application error:", error);
+      throw error;
+    }
+  },
+  removeApplications: async (user_id) => {
+    try {
+      const [result] = await connection.query(queries.removeApplications, [
+        user_id,
+      ]);
+      return result;
+    } catch (error) {
+      console.error("Delete application error:", error);
       throw error;
     }
   },
