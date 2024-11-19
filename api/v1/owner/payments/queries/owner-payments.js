@@ -16,8 +16,14 @@ const queries = {
   getPartiallyPaidPayments: `SELECT ${table_name}.*, u.first_name, u.last_name, f.flat_number FROM ${table_name} join tenancies t on ${table_name}.tenancy_id = t.tenancy_id join users u on t.user_id = u.user_id join flats f on t.flats_id = f.flats_id
         WHERE ${table_name}.owner_id = ? AND ${table_name}.payment_id = 2`,
   updatePayments: `UPDATE payments SET amount = ?, payment_date = CURRENT_TIMESTAMP(), payment_type = ?,  status = ?, last_updated_by = ?, change_number = change_number + 1 WHERE payment_id = ? AND owner_id = ?`,
-  getUnpaidPayments: `SELECT ${table_name}.*, u.first_name, u.last_name, f.flat_number FROM ${table_name} join tenancies t on ${table_name}.tenancy_id = t.tenancy_id join users u on t.user_id = u.user_id join flats f on t.flats_id = f.flats_id
-        WHERE ${table_name}.owner_id = ? AND ${table_name}.status = 0`,
+  getUnpaidPayments: `SELECT t.*, u.first_name, u.last_name, f.flat_number
+FROM tenancies t
+JOIN users u ON t.user_id = u.user_id
+JOIN flats f ON t.flats_id = f.flats_id
+LEFT JOIN ${table_name} ON ${table_name}.tenancy_id = t.tenancy_id
+WHERE ${table_name}.tenancy_id IS NULL
+  AND t.owner_id = ?;
+`,
 };
 
 module.exports = queries;
