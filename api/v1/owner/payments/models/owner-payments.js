@@ -88,6 +88,18 @@ const owner_payments = {
       throw error;
     }
   },
+  getUnPaidPayments: async (owner_id) => {
+    try {
+      const [unpaidPayments] = await connection.query(
+        queries.getUnpaidPayments,
+        [owner_id]
+      );
+      return unpaidPayments;
+    } catch (error) {
+      console.error("Get partially paid payments error:", error);
+      throw error;
+    }
+  },
   updatePayments: async (
     amount,
     payment_type,

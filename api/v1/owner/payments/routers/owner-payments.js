@@ -227,6 +227,34 @@ router.get(
     }
   }
 );
+router.get("/owner/payments/unpaid", authenticateUser, async (req, res) => {
+  const token = req.cookies.token;
+  if (!token) {
+    return res.status(401).json({ success: false, message: "No token found" });
+  }
+
+  try {
+    if (isEmpty(req.user.owner_id)) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const decoded = verifyTokenOwner(token);
+    if (decoded) {
+      const unpaidPayments = await payments.getUnPaidPayments(decoded.owner_id);
+      return res.status(200).json({
+        success: true,
+        data: unpaidPayments,
+      });
+    } else {
+      return res.status(401).json({ success: false, message: "Invalid token" });
+    }
+  } catch (error) {
+    console.error("Error fetching unpaid payments:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+});
 
 router.put(
   "/owner/update-payment/:payment_id",
