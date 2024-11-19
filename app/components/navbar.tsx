@@ -75,7 +75,7 @@ const ButtonWithNotification = ({ href, icon: Icon, label, count }: { href: stri
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
-  const [notificationCounts, setNotificationCounts] = useState<NotificationCounts>({ applications: 0, serviceRequests: 0 })
+  // const [notificationCounts, setNotificationCounts] = useState<NotificationCounts>({ applications: 0, serviceRequests: 0 })
   const router = useRouter()
   const pathname = usePathname()
 
@@ -83,11 +83,11 @@ export default function Navbar() {
     checkAuth()
   }, [pathname])
 
-  useEffect(() => {
-    if (user) {
-      fetchNotificationCounts()
-    }
-  }, [user])
+  // useEffect(() => {
+  //   if (user) {
+  //      fetchNotificationCounts()
+  //   }
+  // }, [user])
 
   const checkAuth = async () => {
     try {
@@ -112,17 +112,17 @@ export default function Navbar() {
     }
   }
 
-  const fetchNotificationCounts = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/${user?.userType}/notification-counts`, { credentials: 'include' })
-      if (response.ok) {
-        const data = await response.json()
-        setNotificationCounts(data)
-      }
-    } catch (error) {
-      console.error('Error fetching notification counts:', error)
-    }
-  }
+  // const fetchNotificationCounts = async () => {
+  //   try {
+  //     const response = await fetch(`${process.env.NEXT_PUBLIC_API}/${user?.userType}/notification-counts`, { credentials: 'include' })
+  //     if (response.ok) {
+  //       const data = await response.json()
+  //       setNotificationCounts(data)
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching notification counts:', error)
+  //   }
+  // }
 
   const handleLogout = async () => {
     try {
@@ -167,18 +167,18 @@ export default function Navbar() {
                       Payment Status
                     </Button>
                   </Link>
-                  <ButtonWithNotification 
+                  {/* <ButtonWithNotification 
                     href="/owner/applications" 
                     icon={FileText} 
                     label="Applications" 
-                    count={notificationCounts.applications} 
+                     count={notificationCounts.applications} 
                   />
                   <ButtonWithNotification 
                     href="/owner/service-requests" 
                     icon={Wrench} 
                     label="Service Requests" 
                     count={notificationCounts.serviceRequests} 
-                  />
+                  /> */}
                 </>
               ) : (
                 <>
@@ -200,7 +200,7 @@ export default function Navbar() {
                       Flats Info
                     </Button>
                   </Link>
-                  <ButtonWithNotification 
+                  {/* <ButtonWithNotification 
                     href="/tenant/applications" 
                     icon={FileText} 
                     label="Applications" 
@@ -211,7 +211,7 @@ export default function Navbar() {
                     icon={Wrench} 
                     label="Service Requests" 
                     count={notificationCounts.serviceRequests} 
-                  />
+                  /> */}
                 </>
               )}
             </div>
