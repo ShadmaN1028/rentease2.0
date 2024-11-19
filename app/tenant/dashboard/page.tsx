@@ -12,28 +12,36 @@ import { Loader2, Search, Home, DollarSign, MapPin, Bath, BedDouble, Wind, Refre
 // import { toast } from "@/components/ui/use-toast"
 
 interface Flat {
-  id: string
-  title: string
-  address: string
+  flats_id: number
+  building_id: number
+  flat_number: string
   area: string
   rooms: number
-  bathrooms: number
-  balcony: boolean
-  rent: number
-  postedDate: string
+  bath: number
+  balcony: number
+  description: string
+  status: number
+  rent: string
+  tenancy_type: number
+  created_by: string
+  creation_date: string
+  last_updated_by: string
+  last_update_date: string
+  change_number: string
 }
 
 export default function TenantDashboard() {
   const [flats, setFlats] = useState<Flat[]>([])
   const [filteredFlats, setFilteredFlats] = useState<Flat[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSearchActive, setIsSearchActive] = useState(false)
   const [searchCriteria, setSearchCriteria] = useState({
     area: '',
-    address: '',
+    flat_number: '',
     rooms: '',
-    bathrooms: '',
+    bath: '',
     balcony: false,
     minRent: 0,
     maxRent: 50000,
@@ -45,6 +53,7 @@ export default function TenantDashboard() {
 
   const fetchFlats = async () => {
     setIsLoading(true)
+    setError(null)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/available-flats`, {
         credentials: 'include',
@@ -53,10 +62,15 @@ export default function TenantDashboard() {
         throw new Error('Failed to fetch flats')
       }
       const data = await response.json()
-      setFlats(data.flats)
-      setFilteredFlats(data.flats)
+      if (data.success && Array.isArray(data.data)) {
+        setFlats(data.data)
+        setFilteredFlats(data.data)
+      } else {
+        throw new Error('Invalid data format received from API')
+      }
     } catch (error) {
       console.error('Error fetching flats:', error)
+      setError('Failed to fetch available flats. Please try again.')
       // toast({
       //   title: "Error",
       //   description: "Failed to fetch available flats. Please try again.",
@@ -70,11 +84,12 @@ export default function TenantDashboard() {
   const handleSearch = () => {
     const filtered = flats.filter(flat => {
       if (searchCriteria.area && !flat.area.toLowerCase().includes(searchCriteria.area.toLowerCase())) return false
-      if (searchCriteria.address && !flat.address.toLowerCase().includes(searchCriteria.address.toLowerCase())) return false
+      if (searchCriteria.flat_number && !flat.flat_number.toLowerCase().includes(searchCriteria.flat_number.toLowerCase())) return false
       if (searchCriteria.rooms && flat.rooms < parseInt(searchCriteria.rooms)) return false
-      if (searchCriteria.bathrooms && flat.bathrooms < parseInt(searchCriteria.bathrooms)) return false
-      if (searchCriteria.balcony && !flat.balcony) return false
-      if (flat.rent < searchCriteria.minRent || flat.rent > searchCriteria.maxRent) return false
+      if (searchCriteria.bath && flat.bath < parseInt(searchCriteria.bath)) return false
+      if (searchCriteria.balcony && flat.balcony === 0) return false
+      const rentValue = parseFloat(flat.rent)
+      if (rentValue < searchCriteria.minRent || rentValue > searchCriteria.maxRent) return false
       return true
     })
     setFilteredFlats(filtered)
@@ -85,9 +100,9 @@ export default function TenantDashboard() {
   const resetSearch = () => {
     setSearchCriteria({
       area: '',
-      address: '',
+      flat_number: '',
       rooms: '',
-      bathrooms: '',
+      bath: '',
       balcony: false,
       minRent: 0,
       maxRent: 50000,
@@ -96,11 +111,11 @@ export default function TenantDashboard() {
     setIsSearchActive(false)
   }
 
-  const handleApply = async (flatId: string) => {
+  const handleApply = async (flatId: number) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/apply/${flatId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/make-applications/${flatId}`, {
         method: 'POST',
-        credentials: 'include',
+        credentials: 'include'
       })
       if (!response.ok) {
         throw new Error('Failed to apply for flat')
@@ -123,6 +138,14 @@ export default function TenantDashboard() {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-red-500">{error}</p>
       </div>
     )
   }
@@ -155,13 +178,13 @@ export default function TenantDashboard() {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="address" className="text-right">
-                    Address
+                  <Label htmlFor="flat_number" className="text-right">
+                    Flat Number
                   </Label>
                   <Input
-                    id="address"
-                    value={searchCriteria.address}
-                    onChange={(e) => setSearchCriteria({...searchCriteria, address: e.target.value})}
+                    id="flat_number"
+                    value={searchCriteria.flat_number}
+                    onChange={(e) => setSearchCriteria({...searchCriteria, flat_number: e.target.value})}
                     className="col-span-3"
                   />
                 </div>
@@ -178,14 +201,14 @@ export default function TenantDashboard() {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="bathrooms" className="text-right">
+                  <Label htmlFor="bath" className="text-right">
                     Bathrooms
                   </Label>
                   <Input
-                    id="bathrooms"
+                    id="bath"
                     type="number"
-                    value={searchCriteria.bathrooms}
-                    onChange={(e) => setSearchCriteria({...searchCriteria, bathrooms: e.target.value})}
+                    value={searchCriteria.bath}
+                    onChange={(e) => setSearchCriteria({...searchCriteria, bath: e.target.value})}
                     className="col-span-3"
                   />
                 </div>
@@ -228,48 +251,49 @@ export default function TenantDashboard() {
           )}
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredFlats.map((flat) => (
-          <Card key={flat.id}>
-            <CardHeader>
-              <CardTitle>{flat.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <MapPin className="mr-2 h-4 w-4" />
-                  <span>{flat.address}, {flat.area}</span>
-                </div>
-                <div className="flex items-center">
-                  <Home className="mr-2 h-4 w-4" />
-                  <span>{flat.rooms} room{flat.rooms > 1 ? 's' : ''}</span>
-                </div>
-                <div className="flex items-center">
-                  <Bath className="mr-2 h-4 w-4" />
-                  <span>{flat.bathrooms} bathroom{flat.bathrooms > 1 ? 's' : ''}</span>
-                </div>
-                {flat.balcony && (
+      {filteredFlats.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredFlats.map((flat) => (
+            <Card key={flat.flats_id}>
+              <CardHeader>
+                <CardTitle>Flat {flat.flat_number}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
                   <div className="flex items-center">
-                    <Wind className="mr-2 h-4 w-4" />
-                    <span>Balcony</span>
+                    <MapPin className="mr-2 h-4 w-4" />
+                    <span>Area: {flat.area} sq ft</span>
                   </div>
-                )}
-                <div className="flex items-center">
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  <span>${flat.rent}/month</span>
+                  <div className="flex items-center">
+                    <Home className="mr-2 h-4 w-4" />
+                    <span>{flat.rooms} room{flat.rooms > 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Bath className="mr-2 h-4 w-4" />
+                    <span>{flat.bath} bathroom{flat.bath > 1 ? 's' : ''}</span>
+                  </div>
+                  {flat.balcony > 0 && (
+                    <div className="flex items-center">
+                      <Wind className="mr-2 h-4 w-4" />
+                      <span>{flat.balcony} Balcon{flat.balcony > 1 ? 'ies' : 'y'}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center">
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    <span>${parseFloat(flat.rent).toFixed(2)}/month</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary">
+                      Posted on {new Date(flat.creation_date).toLocaleDateString()}
+                    </Badge>
+                    <Button size="sm" onClick={() => handleApply(flat.flats_id)}>Apply</Button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary">
-                    Posted on {new Date(flat.postedDate).toLocaleDateString()}
-                  </Badge>
-                  <Button size="sm" onClick={() => handleApply(flat.id)}>Apply</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      {filteredFlats.length === 0 && (
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
         <p className="text-center mt-4">No flats found matching your criteria.</p>
       )}
     </div>

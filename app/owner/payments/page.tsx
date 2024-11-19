@@ -9,13 +9,15 @@ import { Button } from "@/components/ui/button"
 import { Loader2, AlertCircle } from 'lucide-react'
 
 interface Payment {
-  flat_id: string
+  payment_id: string
+  tenancy_id: string
+  amount: number
+  payment_date: string
+  payment_type: number
+  status: number
   flat_number: string
   building_name: string
   tenant_name: string
-  amount: number
-  due_date: string
-  status: 'paid' | 'pending' | 'overdue'
 }
 
 export default function OwnerPayments() {
@@ -31,14 +33,18 @@ export default function OwnerPayments() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/payments`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/payments-list`, {
         credentials: 'include',
       })
       if (!response.ok) {
         throw new Error('Failed to fetch payments')
       }
       const data = await response.json()
-      setPayments(data.payments)
+      if (data.success) {
+        setPayments(data.data)
+      } else {
+        throw new Error(data.message || 'Failed to fetch payments')
+      }
     } catch (err) {
       setError('An error occurred while fetching payments. Please try again.')
       console.error('Error fetching payments:', err)
@@ -47,16 +53,27 @@ export default function OwnerPayments() {
     }
   }
 
-  const getStatusBadge = (status: Payment['status']) => {
+  const getStatusBadge = (status: number) => {
     switch (status) {
-      case 'paid':
+      case 1:
         return <Badge className="bg-green-500">Paid</Badge>
-      case 'pending':
-        return <Badge className="bg-yellow-500">Pending</Badge>
-      case 'overdue':
-        return <Badge className="bg-red-500">Overdue</Badge>
+      case 2:
+        return <Badge className="bg-yellow-500">Partially Paid</Badge>
+      case 3:
+        return <Badge className="bg-red-500">Unpaid</Badge>
       default:
-        return null
+        return <Badge className="bg-gray-500">Unknown</Badge>
+    }
+  }
+
+  const getPaymentType = (type: number) => {
+    switch (type) {
+      case 1:
+        return 'Full Payment'
+      case 2:
+        return 'Partial Payment'
+      default:
+        return 'Unknown'
     }
   }
 
@@ -95,18 +112,20 @@ export default function OwnerPayments() {
                   <TableHead>Building</TableHead>
                   <TableHead>Tenant</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Due Date</TableHead>
+                  <TableHead>Payment Date</TableHead>
+                  <TableHead>Payment Type</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {payments.map((payment) => (
-                  <TableRow key={payment.flat_id}>
+                  <TableRow key={payment.payment_id}>
                     <TableCell>{payment.flat_number}</TableCell>
                     <TableCell>{payment.building_name}</TableCell>
                     <TableCell>{payment.tenant_name}</TableCell>
                     <TableCell>${payment.amount.toFixed(2)}</TableCell>
-                    <TableCell>{new Date(payment.due_date).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(payment.payment_date).toLocaleDateString()}</TableCell>
+                    <TableCell>{getPaymentType(payment.payment_type)}</TableCell>
                     <TableCell>{getStatusBadge(payment.status)}</TableCell>
                   </TableRow>
                 ))}

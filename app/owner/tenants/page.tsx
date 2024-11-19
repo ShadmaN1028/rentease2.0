@@ -9,11 +9,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Search } from 'lucide-react'
 
 interface Tenant {
-  id: string
-  name: string
-  flatNumber: string
-  buildingName: string
-  paymentStatus: 'paid' | 'unpaid'
+  user_id: string
+  first_name: string
+  last_name: string
+  flat_number: string
+  building_name: string
+  payment_status: 'paid' | 'unpaid'
 }
 
 export default function TenantList() {
@@ -28,27 +29,32 @@ export default function TenantList() {
   }, [])
 
   useEffect(() => {
-    setFilteredTenants(
-      tenants.filter(tenant =>
-        tenant.name.toLowerCase().includes(searchTerm.toLowerCase())
+    if (tenants.length > 0) {
+      setFilteredTenants(
+        tenants.filter(tenant =>
+          `${tenant.first_name} ${tenant.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
+        )
       )
-    )
+    }
   }, [searchTerm, tenants])
 
   const fetchTenants = async () => {
     setIsLoading(true)
     setError(null)
     try {
-      // Replace this with your actual API call
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/tenants`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/payments/tenancy-list`, {
         credentials: 'include',
       })
       if (!response.ok) {
         throw new Error('Failed to fetch tenants')
       }
       const data = await response.json()
-      setTenants(data.tenants)
-      setFilteredTenants(data.tenants)
+      if (data.success && Array.isArray(data.data)) {
+        setTenants(data.data)
+        setFilteredTenants(data.data)
+      } else {
+        throw new Error('Invalid data format received from API')
+      }
     } catch (err) {
       setError('An error occurred while fetching tenants. Please try again.')
       console.error('Error fetching tenants:', err)
@@ -104,13 +110,13 @@ export default function TenantList() {
               </TableHeader>
               <TableBody>
                 {filteredTenants.map((tenant) => (
-                  <TableRow key={tenant.id}>
-                    <TableCell>{tenant.name}</TableCell>
-                    <TableCell>{tenant.flatNumber}</TableCell>
-                    <TableCell>{tenant.buildingName}</TableCell>
+                  <TableRow key={tenant.user_id}>
+                    <TableCell>{`${tenant.first_name} ${tenant.last_name}`}</TableCell>
+                    <TableCell>{tenant.flat_number}</TableCell>
+                    <TableCell>{tenant.building_name}</TableCell>
                     <TableCell>
-                      <Badge className={tenant.paymentStatus === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
-                        {tenant.paymentStatus}
+                      <Badge className={tenant.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
+                        {tenant.payment_status}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -123,5 +129,4 @@ export default function TenantList() {
         </CardContent>
       </Card>
     </div>
-  )
-}
+  )}

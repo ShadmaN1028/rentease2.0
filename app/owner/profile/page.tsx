@@ -33,7 +33,7 @@ export default function OwnerProfilePage() {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/profile`, { credentials: 'include' })
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/user-info`, { credentials: 'include' })
       if (!response.ok) throw new Error('Failed to fetch profile')
       const data = await response.json()
       setProfile(data)
@@ -54,7 +54,7 @@ export default function OwnerProfilePage() {
     if (!profile) return
 
     try {
-      const response = await fetch('/api/owner/profile', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/user-info`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profile),
