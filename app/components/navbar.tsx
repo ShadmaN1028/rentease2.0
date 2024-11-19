@@ -13,11 +13,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Users, Bell, CreditCard, FileText, Wrench, User, LogOut, Home } from 'lucide-react'
+import { Badge } from "@/components/ui/badge"
 
 interface User {
   firstName: string
   lastName: string
   userType: 'owner' | 'tenant'
+}
+
+interface NotificationCounts {
+  applications: number
+  serviceRequests: number
 }
 
 const ProfileDropdown = ({ user, onLogout }: { user: User; onLogout: () => void }) => {
@@ -50,14 +56,38 @@ const ProfileDropdown = ({ user, onLogout }: { user: User; onLogout: () => void 
   )
 }
 
+const ButtonWithNotification = ({ href, icon: Icon, label, count }: { href: string; icon: React.ElementType; label: string; count: number }) => (
+  <Link href={href}>
+    <Button variant="ghost" className="relative">
+      <Icon className="mr-2 h-4 w-4" />
+      {label}
+      {count > 0 && (
+        <Badge 
+          variant="destructive" 
+          className="absolute -top-2 -right-2 px-1 min-w-[1.25rem] h-5 flex items-center justify-center text-xs"
+        >
+          {count > 9 ? '9+' : count}
+        </Badge>
+      )}
+    </Button>
+  </Link>
+)
+
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
+  const [notificationCounts, setNotificationCounts] = useState<NotificationCounts>({ applications: 0, serviceRequests: 0 })
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
     checkAuth()
   }, [pathname])
+
+  useEffect(() => {
+    if (user) {
+      fetchNotificationCounts()
+    }
+  }, [user])
 
   const checkAuth = async () => {
     try {
@@ -79,6 +109,18 @@ export default function Navbar() {
     } catch (error) {
       console.error('Error checking authentication:', error)
       setUser(null)
+    }
+  }
+
+  const fetchNotificationCounts = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/${user?.userType}/notification-counts`, { credentials: 'include' })
+      if (response.ok) {
+        const data = await response.json()
+        setNotificationCounts(data)
+      }
+    } catch (error) {
+      console.error('Error fetching notification counts:', error)
     }
   }
 
@@ -125,18 +167,18 @@ export default function Navbar() {
                       Payment Status
                     </Button>
                   </Link>
-                  <Link href="/owner/applications">
-                    <Button variant="ghost">
-                      <FileText className="mr-2 h-4 w-4" />
-                      Applications
-                    </Button>
-                  </Link>
-                  <Link href="/owner/service-requests">
-                    <Button variant="ghost">
-                      <Wrench className="mr-2 h-4 w-4" />
-                      Service Requests
-                    </Button>
-                  </Link>
+                  <ButtonWithNotification 
+                    href="/owner/applications" 
+                    icon={FileText} 
+                    label="Applications" 
+                    count={notificationCounts.applications} 
+                  />
+                  <ButtonWithNotification 
+                    href="/owner/service-requests" 
+                    icon={Wrench} 
+                    label="Service Requests" 
+                    count={notificationCounts.serviceRequests} 
+                  />
                 </>
               ) : (
                 <>
@@ -158,18 +200,18 @@ export default function Navbar() {
                       Flats Info
                     </Button>
                   </Link>
-                  <Link href="/tenant/applications">
-                    <Button variant="ghost">
-                      <FileText className="mr-2 h-4 w-4" />
-                      Applications
-                    </Button>
-                  </Link>
-                  <Link href="/tenant/service-requests">
-                    <Button variant="ghost">
-                      <Wrench className="mr-2 h-4 w-4" />
-                      Service Requests
-                    </Button>
-                  </Link>
+                  <ButtonWithNotification 
+                    href="/tenant/applications" 
+                    icon={FileText} 
+                    label="Applications" 
+                    count={notificationCounts.applications} 
+                  />
+                  <ButtonWithNotification 
+                    href="/tenant/service-requests" 
+                    icon={Wrench} 
+                    label="Service Requests" 
+                    count={notificationCounts.serviceRequests} 
+                  />
                 </>
               )}
             </div>
@@ -180,5 +222,4 @@ export default function Navbar() {
         </div>
       </div>
     </nav>
-  )
-}
+  )}

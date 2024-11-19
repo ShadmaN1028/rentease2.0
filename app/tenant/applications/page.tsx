@@ -1,50 +1,49 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Loader2, Home, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react'
-// import { toast } from "@/components/ui/use-toast"
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react';
 
 interface Application {
-  id: string
-  flatTitle: string
-  applicationDate: string
-  status: 'pending' | 'approved' | 'rejected'
+  id: string;
+  flatTitle: string;
+  applicationDate: string;
+  status: 'pending' | 'approved' | 'rejected';
 }
 
 export default function ApplicationsPage() {
-  const [applications, setApplications] = useState<Application[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchApplications()
-  }, [])
+    fetchApplications();
+  }, []);
 
   const fetchApplications = async () => {
     try {
-      const response = await fetch('/api/tenant/applications', { credentials: 'include' })
-      if (!response.ok) throw new Error('Failed to fetch applications')
-      const data = await response.json()
-      setApplications(data)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/check-applications`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch applications');
+      const data = await response.json();
+      setApplications(data);
     } catch (error) {
-      console.error('Error fetching applications:', error)
-    //   toast({
-    //     title: "Error",
-    //     description: "Failed to load applications. Please try again.",
-    //     variant: "destructive",
-    //   })
+      console.error('Error fetching applications:', error);
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to load applications. Please try again.",
+      //   variant: "destructive",
+      // });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-    )
+    );
   }
 
   return (
@@ -62,7 +61,7 @@ export default function ApplicationsPage() {
                   <Badge
                     variant={
                       application.status === 'approved'
-                        ? 'success'
+                        ? 'default' // Use 'default' for success styling
                         : application.status === 'rejected'
                         ? 'destructive'
                         : 'secondary'
@@ -91,5 +90,5 @@ export default function ApplicationsPage() {
         </div>
       )}
     </div>
-  )
+  );
 }
