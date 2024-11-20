@@ -27,7 +27,12 @@ const owner_applications = {
       ]);
 
       if (approveResult.affectedRows === 0) {
-        throw new Error("Application not found or already approved");
+        await conn.rollback();
+        return {
+          success: false,
+          message: "Application not found or already approved",
+          statusCode: 404,
+        };
       }
 
       // 2. Get application details
@@ -37,24 +42,79 @@ const owner_applications = {
       );
 
       if (applicationDetails.length === 0) {
-        throw new Error("Application details not found");
+        await conn.rollback();
+        return {
+          success: false,
+          message: "Application details not found",
+          statusCode: 404,
+        };
       }
 
       const { flats_id, user_id, building_id } = applicationDetails[0];
 
-      // 3. Update flat status
+      // 3. Check for existing tenancy
+      const [existingTenancy] = await conn.query(queries.checkExistingTenancy, [
+        user_id,
+      ]);
+      if (existingTenancy[0].count > 0) {
+        await conn.rollback();
+        return {
+          success: false,
+          message: "User already has an active tenancy",
+          statusCode: 400,
+        };
+      }
+
+      // 4. Update flat status
       await conn.query(queries.updateFlatStatus, [flats_id]);
 
-      // 4. Update building vacancies
+      // 5. Update building vacancies
       await conn.query(queries.updateVacancies, [building_id, owner_id]);
 
+      // 6. Remove other applications for this user
       await conn.query(queries.removeApplications, [user_id]);
 
-      // 5. Start tenancy
-      await conn.query(queries.startTenancy, [
+      // 7. Start tenancy
+      const [startTenancyResult] = await conn.query(queries.startTenancy, [
         flats_id,
         user_id,
         owner_id,
+        owner_id, // created_by
+        owner_id, // updated_by
+        user_id, // for the WHERE NOT EXISTS clause
+      ]);
+
+      if (startTenancyResult.affectedRows === 0) {
+        await conn.rollback();
+        return {
+          success: false,
+          message:
+            "Failed to start tenancy. User may already have an active tenancy.",
+          statusCode: 400,
+        };
+      }
+
+      // 8. Get flat details for notification
+      const [flatDetails] = await conn.query(queries.getFlatDetails, [
+        flats_id,
+      ]);
+      if (flatDetails.length === 0) {
+        await conn.rollback();
+        return {
+          success: false,
+          message: "Flat details not found",
+          statusCode: 404,
+        };
+      }
+
+      const { flat_number, building_name } = flatDetails[0];
+
+      // 9. Send notification to tenant
+      const notificationDescription = `Your application for Flat ${flat_number} in ${building_name} has been approved. Your tenancy starts now.`;
+      await conn.query(queries.sendNotification, [
+        user_id,
+        owner_id,
+        notificationDescription,
         owner_id, // created_by
         owner_id, // updated_by
       ]);
@@ -62,16 +122,22 @@ const owner_applications = {
       await conn.commit();
       return {
         success: true,
-        message: "Application approved and tenancy started",
+        message: "Application approved, tenancy started, and tenant notified",
+        statusCode: 200,
       };
     } catch (error) {
       if (conn) await conn.rollback();
       console.error("Approve application error:", error);
-      throw error;
+      return {
+        success: false,
+        message: "Internal server error",
+        statusCode: 500,
+      };
     } finally {
       if (conn) conn.release();
     }
   },
+
   denyApplication: async (applications_id, owner_id) => {
     try {
       const [denyResult] = await connection.query(queries.denyApplication, [

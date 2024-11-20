@@ -67,6 +67,24 @@ const owner_notifications = {
       if (conn) conn.release();
     }
   },
+  markAsRead: async (owner_id, notification_id) => {
+    try {
+      const [result] = await connection.query(queries.markAsRead, [
+        owner_id,
+        notification_id,
+      ]);
+      if (result.affectedRows === 0) {
+        throw new Error("mark as read failed");
+      }
+      return {
+        success: true,
+        message: "notif marked as read",
+      };
+    } catch (error) {
+      console.error("mark as read error:", error);
+      throw error;
+    }
+  },
 };
 
 module.exports = owner_notifications;

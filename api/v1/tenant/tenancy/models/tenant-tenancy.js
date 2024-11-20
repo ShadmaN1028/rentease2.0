@@ -22,6 +22,17 @@ const tenant_tenancies = {
       throw error;
     }
   },
+  leaveTenancy: async (user_id) => {
+    try {
+      await connection.query(queries.updateFlatStatus, [user_id]);
+      await connection.query(queries.updateVacancies, [user_id]);
+      const [result] = await connection.query(queries.leaveTenancy, [user_id]);
+      return result;
+    } catch (error) {
+      console.error("Check tenancy error:", error);
+      throw error;
+    }
+  },
 };
 
 module.exports = tenant_tenancies;

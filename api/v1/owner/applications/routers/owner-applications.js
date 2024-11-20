@@ -80,7 +80,7 @@ router.post(
     }
 
     try {
-      if (isEmpty(req.user.owner_id)) {
+      if (!req.user.owner_id) {
         return res
           .status(401)
           .json({ success: false, message: "Unauthorized" });
@@ -92,11 +92,13 @@ router.post(
         owner_id
       );
 
-      return res.status(200).json({
-        success: true,
-        message: "Application approved successfully",
-        data: result,
-      });
+      // Directly forward the result as the response if it's already structured properly
+      if (!result.success) {
+        return res.status(result.statusCode).json(result);
+      }
+
+      // Send success response
+      return res.status(200).json(result);
     } catch (error) {
       console.error("Error approving application:", error);
       if (error.message === "Application not found or already approved") {

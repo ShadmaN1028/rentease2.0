@@ -18,6 +18,7 @@ const tenantRequestsRouter = require("./api/v1/tenant/service_requests/routers/t
 const ownerRequestsRouter = require("./api/v1/owner/service_requests/routers/owner-service");
 const ownerPaymentsRouter = require("./api/v1/owner/payments/routers/owner-payments");
 const ownerNotificationsRouter = require("./api/v1/owner/notifications/routers/owner-notifications");
+const tenantNotificationsRouter = require("./api/v1/tenant/notifications/routers/tenant-notifications");
 
 app.use(express.json());
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
@@ -36,6 +37,7 @@ app.use("/api/v1/", tenantRequestsRouter);
 app.use("/api/v1/", ownerRequestsRouter);
 app.use("/api/v1/", ownerPaymentsRouter);
 app.use("/api/v1/", ownerNotificationsRouter);
+app.use("/api/v1/", tenantNotificationsRouter);
 
 app.listen(port, () => {
   console.log(`server is running on port ${port}`);

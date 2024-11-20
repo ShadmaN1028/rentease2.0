@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const notifications = require("../models/owner-notifications");
+const notifications = require("../models/tenant-notifications");
 
-const { verifyTokenOwner } = require("../../../jwt");
+const { verifyToken } = require("../../../jwt");
 const isEmpty = require("is-empty");
 
 const authenticateUser = (req, res, next) => {
@@ -11,7 +11,7 @@ const authenticateUser = (req, res, next) => {
     return res.status(401).json({ success: false, message: "No token found" });
   }
   try {
-    const decoded = verifyTokenOwner(token);
+    const decoded = verifyToken(token);
     if (decoded) {
       req.user = decoded;
       next();
@@ -26,21 +26,21 @@ const authenticateUser = (req, res, next) => {
   }
 };
 
-router.get("/owner/notifications-list", authenticateUser, async (req, res) => {
+router.get("/tenant/notifications-list", authenticateUser, async (req, res) => {
   const token = req.cookies.token;
   if (!token) {
     return res.status(401).json({ success: false, message: "No token found" });
   }
 
   try {
-    if (isEmpty(req.user.owner_id)) {
+    if (isEmpty(req.user.user_id)) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const decoded = verifyTokenOwner(token);
+    const decoded = verifyToken(token);
     if (decoded) {
       const notificationsList = await notifications.getNotificationsList(
-        decoded.owner_id
+        decoded.user_id
       );
       return res.status(200).json({
         success: true,
@@ -57,7 +57,7 @@ router.get("/owner/notifications-list", authenticateUser, async (req, res) => {
   }
 });
 router.get(
-  "/owner/notification-details/:notification_id",
+  "/tenant/notification-details/:notification_id",
   authenticateUser,
   async (req, res) => {
     const token = req.cookies.token;
@@ -69,16 +69,16 @@ router.get(
     }
 
     try {
-      if (isEmpty(req.user.owner_id)) {
+      if (isEmpty(req.user.user_id)) {
         return res
           .status(401)
           .json({ success: false, message: "Unauthorized" });
       }
 
-      const decoded = verifyTokenOwner(token);
+      const decoded = verifyToken(token);
       if (decoded) {
         const notificationDetails = await notifications.getNotificationDetails(
-          decoded.owner_id,
+          decoded.user_id,
           notification_id
         );
         return res.status(200).json({
@@ -99,94 +99,8 @@ router.get(
   }
 );
 
-router.get(
-  "/owner/notifications/tenancy-list",
-  authenticateUser,
-  async (req, res) => {
-    const token = req.cookies.token;
-    if (!token) {
-      return res
-        .status(401)
-        .json({ success: false, message: "No token found" });
-    }
-
-    try {
-      if (isEmpty(req.user.owner_id)) {
-        return res
-          .status(401)
-          .json({ success: false, message: "Unauthorized" });
-      }
-
-      const decoded = verifyTokenOwner(token);
-      if (decoded) {
-        const notificationTenancyList = await notifications.getTenancyList(
-          decoded.owner_id
-        );
-        return res.status(200).json({
-          success: true,
-          data: notificationTenancyList,
-        });
-      } else {
-        return res
-          .status(401)
-          .json({ success: false, message: "Invalid token" });
-      }
-    } catch (error) {
-      console.error("Error fetching tenancy list :", error);
-      return res
-        .status(500)
-        .json({ success: false, message: "Internal server error" });
-    }
-  }
-);
-
-router.post(
-  "/owner/send-notification/:user_id",
-  authenticateUser,
-  async (req, res) => {
-    const { user_id } = req.params;
-    const { description } = req.body;
-    if (!user_id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "user ID is required" });
-    }
-
-    try {
-      if (isEmpty(req.user.owner_id)) {
-        return res
-          .status(401)
-          .json({ success: false, message: "Unauthorized" });
-      }
-
-      const owner_id = req.user.owner_id;
-      const result = await notifications.sendNotifications(
-        user_id,
-        owner_id,
-        description,
-        owner_id,
-        owner_id
-      );
-
-      return res.status(200).json({
-        success: true,
-        message: "notf sent successfully",
-        data: result,
-      });
-    } catch (error) {
-      console.error("Error sending notf:", error);
-      if (error.message === "notf not found ") {
-        return res.status(404).json({ success: false, message: error.message });
-      }
-      return res
-        .status(500)
-        .json({ success: false, message: "Internal server error" });
-    }
-  }
-);
-
 router.put(
-  "/owner/mark-as-read/:notification_id",
+  "/tenant/mark-as-read/:notification_id",
   authenticateUser,
   async (req, res) => {
     const { notification_id } = req.params;
@@ -197,16 +111,16 @@ router.put(
     }
 
     try {
-      if (isEmpty(req.user.owner_id)) {
+      if (isEmpty(req.user.user_id)) {
         return res
           .status(401)
           .json({ success: false, message: "Unauthorized" });
       }
 
-      const decoded = verifyTokenOwner(req.cookies.token);
+      const decoded = verifyToken(req.cookies.token);
       if (decoded) {
         const result = await notifications.markAsRead(
-          decoded.owner_id,
+          decoded.user_id,
           notification_id
         );
         return res.status(200).json({

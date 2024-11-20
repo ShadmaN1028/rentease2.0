@@ -70,4 +70,26 @@ router.get("/tenant/get-tenancy-info", authenticateUser, async (req, res) => {
   }
 });
 
+router.delete("/tenant/leave-tenancy", authenticateUser, async (req, res) => {
+  try {
+    if (isEmpty(req.user.user_id)) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const user_id = req.user.user_id;
+    const result = await tenancy.leaveTenancy(user_id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Tenancy deleted successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error leaving tenancy:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+});
+
 module.exports = router;
