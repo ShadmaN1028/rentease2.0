@@ -5,6 +5,27 @@ const isEmpty = require("is-empty");
 const bcrypt = require("bcrypt");
 const { verifyTokenOwner, generateTokenOwner } = require("../../../jwt");
 
+const authenticateUser = (req, res, next) => {
+  const token = req.cookies.token;
+  if (!token) {
+    return res.status(401).json({ success: false, message: "No token found" });
+  }
+  try {
+    const decoded = verifyTokenOwner(token);
+    if (decoded) {
+      req.user = decoded;
+      next();
+    } else {
+      return res.status(401).json({ success: false, message: "Invalid token" });
+    }
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
+
 router.post("/owner/signup", async (req, res) => {
   const {
     owner_email,
@@ -201,6 +222,97 @@ router.get("/owner/user-info", async (req, res) => {
     return res
       .status(500)
       .json({ status: 500, success: false, message: "Internal server error" });
+  }
+});
+
+router.put("/owner/update-info", async (req, res) => {
+  const token = req.cookies.token;
+  const {
+    first_name,
+    last_name,
+    nid,
+    permanent_address,
+    contact_number,
+    occupation,
+  } = req.body;
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: "No token found" });
+  }
+
+  const fieldsToUpdate = {};
+
+  // Only add fields that are not empty or undefined
+  if (first_name) fieldsToUpdate.first_name = first_name;
+  if (last_name) fieldsToUpdate.last_name = last_name;
+  if (nid) fieldsToUpdate.nid = nid;
+  if (permanent_address) fieldsToUpdate.permanent_address = permanent_address;
+  if (contact_number) fieldsToUpdate.contact_number = contact_number;
+  if (occupation) fieldsToUpdate.occupation = occupation;
+
+  if (Object.keys(fieldsToUpdate).length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "At least one field must be provided to update.",
+    });
+  }
+
+  try {
+    const decoded = verifyTokenOwner(token);
+    if (decoded) {
+      const updatedOwner = await users.updateInfo(
+        fieldsToUpdate,
+        decoded.owner_id
+      );
+
+      if (!updatedOwner) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Owner not found" });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Owner information updated successfully",
+      });
+    } else {
+      return res.status(401).json({ success: false, message: "Invalid token" });
+    }
+  } catch (error) {
+    console.error("Error updating owner info:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+});
+
+router.put("/owner/update-password", authenticateUser, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Current password and new password are required.",
+    });
+  }
+
+  try {
+    const result = await users.updatePassword(
+      req.user.owner_id,
+      currentPassword,
+      newPassword
+    );
+
+    if (result.success) {
+      return res.status(200).json(result);
+    } else {
+      return res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error("Error updating password:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 });
 

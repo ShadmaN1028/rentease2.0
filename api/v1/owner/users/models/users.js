@@ -102,6 +102,70 @@ const users = {
       throw error;
     }
   },
+  updateInfo: async (fieldsToUpdate, owner_id) => {
+    try {
+      const updates = Object.keys(fieldsToUpdate)
+        .map((key) => `${key} = ?`)
+        .join(", ");
+
+      const values = Object.values(fieldsToUpdate);
+
+      const query = `
+      UPDATE owners 
+      SET ${updates}, 
+          last_update_date = CURRENT_TIMESTAMP(), 
+          change_number = change_number + 1 
+      WHERE owner_id = ?`;
+
+      const [updateResult] = await connection.query(query, [
+        ...values,
+        owner_id,
+      ]);
+
+      if (updateResult.affectedRows === 0) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Update user details error:", error);
+      throw error;
+    }
+  },
+  updatePassword: async (owner_id, currentPassword, newPassword) => {
+    let conn;
+    try {
+      conn = await connection.getConnection();
+      await conn.beginTransaction();
+
+      const [user] = await conn.query(queries.getUserPassword, [owner_id]);
+      if (user.length === 0) {
+        throw new Error("User not found");
+      }
+
+      const isMatch = await bcrypt.compare(
+        currentPassword,
+        user[0].owner_password
+      );
+      if (!isMatch) {
+        return { success: false, message: "Current password is incorrect" };
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+      await conn.query(queries.updatePassword, [hashedPassword, owner_id]);
+
+      await conn.commit();
+      return { success: true, message: "Password updated successfully" };
+    } catch (error) {
+      if (conn) await conn.rollback();
+      console.error("Update password error:", error);
+      throw error;
+    } finally {
+      if (conn) conn.release();
+    }
+  },
 };
 
 module.exports = users;

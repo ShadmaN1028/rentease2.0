@@ -228,4 +228,38 @@ router.put(
   }
 );
 
+router.get(
+  "/owner/unread-notifications",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      if (isEmpty(req.user.owner_id)) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized" });
+      }
+
+      const decoded = verifyTokenOwner(req.cookies.token);
+      if (decoded) {
+        const unreadNotifications = await notifications.unreadNotifications(
+          decoded.owner_id
+        );
+        return res.status(200).json({
+          success: true,
+          data: unreadNotifications,
+        });
+      } else {
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid token" });
+      }
+    } catch (error) {
+      console.error("Error fetching unread notifications:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  }
+);
+
 module.exports = router;

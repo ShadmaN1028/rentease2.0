@@ -45,6 +45,18 @@ const tenant_notificaions = {
       throw error;
     }
   },
+  unreadNotifications: async (user_id) => {
+    try {
+      const [unreadNotifications] = await connection.query(
+        queries.unreadNotifications,
+        [user_id]
+      );
+      return unreadNotifications;
+    } catch (error) {
+      console.error("Get unread notifications error:", error);
+      throw error;
+    }
+  },
 };
 
 module.exports = tenant_notificaions;

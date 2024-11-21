@@ -26,6 +26,18 @@ const owner_notifications = {
       throw error;
     }
   },
+  unreadNotifications: async (owner_id) => {
+    try {
+      const [unreadNotifications] = await connection.query(
+        queries.unreadNotifications,
+        [owner_id]
+      );
+      return unreadNotifications;
+    } catch (error) {
+      console.error("Get unread notifications error:", error);
+      throw error;
+    }
+  },
   getTenancyList: async (owner_id) => {
     try {
       const [tenancyList] = await connection.query(queries.getTenancyList, [

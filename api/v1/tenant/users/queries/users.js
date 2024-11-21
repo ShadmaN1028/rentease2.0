@@ -5,6 +5,8 @@ const queries = {
   getUserById: `SELECT user_id, user_email FROM ${table_name} WHERE user_id = ?`,
   loginByEmail: `SELECT user_id,  user_email, user_password FROM ${table_name} WHERE user_email = ?`,
   existingCheck: `SELECT user_id FROM ${table_name} WHERE user_email = ?`,
+  getUserPassword: `SELECT user_password FROM ${table_name} WHERE user_id = ?`,
+  updatePassword: `UPDATE ${table_name} SET user_password = ?, last_update_date = CURRENT_TIMESTAMP(), change_number = change_number + 1 WHERE user_id = ?`,
 };
 
 module.exports = queries;

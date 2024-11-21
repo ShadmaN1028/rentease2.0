@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const notifications = require("../models/tenant-notifications");
+const tenancy = require("../models/owner-tenancies");
 
-const { verifyToken } = require("../../../jwt");
+const { verifyTokenOwner } = require("../../../jwt");
 const isEmpty = require("is-empty");
 
 const authenticateUser = (req, res, next) => {
@@ -11,7 +11,7 @@ const authenticateUser = (req, res, next) => {
     return res.status(401).json({ success: false, message: "No token found" });
   }
   try {
-    const decoded = verifyToken(token);
+    const decoded = verifyTokenOwner(token);
     if (decoded) {
       req.user = decoded;
       next();
@@ -26,42 +26,11 @@ const authenticateUser = (req, res, next) => {
   }
 };
 
-router.get("/tenant/notifications-list", authenticateUser, async (req, res) => {
-  const token = req.cookies.token;
-  if (!token) {
-    return res.status(401).json({ success: false, message: "No token found" });
-  }
-
-  try {
-    if (isEmpty(req.user.user_id)) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
-
-    const decoded = verifyToken(token);
-    if (decoded) {
-      const notificationsList = await notifications.getNotificationsList(
-        decoded.user_id
-      );
-      return res.status(200).json({
-        success: true,
-        data: notificationsList,
-      });
-    } else {
-      return res.status(401).json({ success: false, message: "Invalid token" });
-    }
-  } catch (error) {
-    console.error("Error fetching notifications list:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
-  }
-});
 router.get(
-  "/tenant/notification-details/:notification_id",
+  "/owner/tenancy/tenancy-list",
   authenticateUser,
   async (req, res) => {
     const token = req.cookies.token;
-    const { notification_id } = req.params;
     if (!token) {
       return res
         .status(401)
@@ -69,21 +38,20 @@ router.get(
     }
 
     try {
-      if (isEmpty(req.user.user_id)) {
+      if (isEmpty(req.user.owner_id)) {
         return res
           .status(401)
           .json({ success: false, message: "Unauthorized" });
       }
 
-      const decoded = verifyToken(token);
+      const decoded = verifyTokenOwner(token);
       if (decoded) {
-        const notificationDetails = await notifications.getNotificationDetails(
-          decoded.user_id,
-          notification_id
+        const paymentTenancyList = await tenancy.getTenancyList(
+          decoded.owner_id
         );
         return res.status(200).json({
           success: true,
-          data: notificationDetails,
+          data: paymentTenancyList,
         });
       } else {
         return res
@@ -91,7 +59,49 @@ router.get(
           .json({ success: false, message: "Invalid token" });
       }
     } catch (error) {
-      console.error("Error fetching notification details:", error);
+      console.error("Error fetching payment details:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  }
+);
+
+router.get(
+  "/owner/tenancy/tenancy-details/:tenancy_id",
+  authenticateUser,
+  async (req, res) => {
+    const token = req.cookies.token;
+    if (!token) {
+      return res
+        .status(401)
+        .json({ success: false, message: "No token found" });
+    }
+
+    try {
+      if (isEmpty(req.user.owner_id)) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized" });
+      }
+
+      const decoded = verifyTokenOwner(token);
+      if (decoded) {
+        const tenancyDetails = await tenancy.getTenancyDetails(
+          decoded.owner_id,
+          req.params.tenancy_id
+        );
+        return res.status(200).json({
+          success: true,
+          data: tenancyDetails,
+        });
+      } else {
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid token" });
+      }
+    } catch (error) {
+      console.error("Error fetching tenancy details:", error);
       return res
         .status(500)
         .json({ success: false, message: "Internal server error" });
@@ -100,33 +110,32 @@ router.get(
 );
 
 router.put(
-  "/tenant/mark-as-read/:notification_id",
+  "/owner/tenancy/remove-tenancy/:tenancy_id",
   authenticateUser,
   async (req, res) => {
-    const { notification_id } = req.params;
-    if (!notification_id) {
+    const token = req.cookies.token;
+    if (!token) {
       return res
-        .status(400)
-        .json({ success: false, message: "Notification ID is required" });
+        .status(401)
+        .json({ success: false, message: "No token found" });
     }
 
     try {
-      if (isEmpty(req.user.user_id)) {
+      if (isEmpty(req.user.owner_id)) {
         return res
           .status(401)
           .json({ success: false, message: "Unauthorized" });
       }
 
-      const decoded = verifyToken(req.cookies.token);
+      const decoded = verifyTokenOwner(token);
       if (decoded) {
-        const result = await notifications.markAsRead(
-          decoded.user_id,
-          notification_id
+        const result = await tenancy.removeTenancy(
+          decoded.owner_id,
+          req.params.tenancy_id
         );
         return res.status(200).json({
           success: true,
-          message: "Notification marked as read",
-          data: result,
+          message: "Tenancy removed successfully",
         });
       } else {
         return res
@@ -134,41 +143,7 @@ router.put(
           .json({ success: false, message: "Invalid token" });
       }
     } catch (error) {
-      console.error("Error marking notification as read:", error);
-      return res
-        .status(500)
-        .json({ success: false, message: "Internal server error" });
-    }
-  }
-);
-
-router.get(
-  "/tenant/unread-notifications",
-  authenticateUser,
-  async (req, res) => {
-    try {
-      if (isEmpty(req.user.user_id)) {
-        return res
-          .status(401)
-          .json({ success: false, message: "Unauthorized" });
-      }
-
-      const decoded = verifyToken(req.cookies.token);
-      if (decoded) {
-        const unreadNotifications = await notifications.unreadNotifications(
-          decoded.user_id
-        );
-        return res.status(200).json({
-          success: true,
-          data: unreadNotifications,
-        });
-      } else {
-        return res
-          .status(401)
-          .json({ success: false, message: "Invalid token" });
-      }
-    } catch (error) {
-      console.error("Error fetching unread notifications:", error);
+      console.error("Error removing tenancy:", error);
       return res
         .status(500)
         .json({ success: false, message: "Internal server error" });

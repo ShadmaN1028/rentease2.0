@@ -83,5 +83,26 @@ router.get("/tenant/available-flats", authenticateUser, async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 });
+router.post("/tenant/search-flats", authenticateUser, async (req, res) => {
+  const { search } = req.query;
 
+  if (!search) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Search query is required" });
+  }
+
+  try {
+    const flats = await tenants.searchFlats(search);
+    return res.status(200).json({
+      success: true,
+      data: flats,
+    });
+  } catch (error) {
+    console.error("Error searching flats:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+});
 module.exports = router;
