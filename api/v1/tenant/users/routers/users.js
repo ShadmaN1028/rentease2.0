@@ -175,8 +175,8 @@ router.get("/check-auth", (req, res) => {
       return res.status(200).json({
         isAuthenticated: true,
         user: {
-          id: decoded.id,
-          email: decoded.email,
+          user_id: decoded.user_id,
+          user_email: decoded.user_email,
         },
       });
     } else {
@@ -193,7 +193,7 @@ router.get("/check-auth", (req, res) => {
   }
 });
 
-router.get("/user-info", async (req, res) => {
+router.get("/tenant/user-info", async (req, res) => {
   const token = req.cookies.token;
 
   if (!token) {
@@ -203,7 +203,7 @@ router.get("/user-info", async (req, res) => {
   try {
     const decoded = verifyToken(token);
     if (decoded) {
-      const userDetails = await users.getUserById(decoded.id);
+      const userDetails = await users.getUserById(decoded.user_id);
       if (userDetails) {
         return res.status(200).json({
           success: true,
