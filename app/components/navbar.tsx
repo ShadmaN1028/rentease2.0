@@ -21,14 +21,9 @@ interface User {
   userType: 'owner' | 'tenant'
 }
 
-interface NotificationCounts {
-  applications: number
-  serviceRequests: number
-}
-
 const ProfileDropdown = ({ user, onLogout }: { user: User; onLogout: () => void }) => {
   const router = useRouter()
-  const initials = `${user.firstName}${user.lastName}`.toUpperCase()
+  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
 
   return (
     <DropdownMenu>
@@ -38,11 +33,11 @@ const ProfileDropdown = ({ user, onLogout }: { user: User; onLogout: () => void 
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => router.push(user.userType === 'owner' ? '/owner/profile' : '/tenant/profile')}>
+        <DropdownMenuItem onClick={() => router.push(`/${user.userType}/profile`)}>
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push(user.userType === 'owner' ? '/owner/dashboard' : '/tenant/dashboard')}>
+        <DropdownMenuItem onClick={() => router.push(`/${user.userType}/dashboard`)}>
           <Home className="mr-2 h-4 w-4" />
           <span>Dashboard</span>
         </DropdownMenuItem>
@@ -75,54 +70,18 @@ const ButtonWithNotification = ({ href, icon: Icon, label, count }: { href: stri
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
-  // const [notificationCounts, setNotificationCounts] = useState<NotificationCounts>({ applications: 0, serviceRequests: 0 })
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    checkAuth()
+    const userType = pathname.includes('/tenant') ? 'tenant' : 'owner'
+    // This is a placeholder. In a real application, you'd fetch the user data from your API
+    setUser({
+      firstName: 'John',
+      lastName: 'Doe',
+      userType: userType
+    })
   }, [pathname])
-
-  // useEffect(() => {
-  //   if (user) {
-  //      fetchNotificationCounts()
-  //   }
-  // }, [user])
-
-  const checkAuth = async () => {
-    try {
-      const ownerResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/check-auth`, { credentials: 'include' })
-      if (ownerResponse.ok) {
-        const ownerData = await ownerResponse.json()
-        setUser({ ...ownerData, userType: 'owner' })
-        return
-      }
-
-      const tenantResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/check-auth`, { credentials: 'include' })
-      if (tenantResponse.ok) {
-        const tenantData = await tenantResponse.json()
-        setUser({ ...tenantData, userType: 'tenant' })
-        return
-      }
-
-      setUser(null)
-    } catch (error) {
-      console.error('Error checking authentication:', error)
-      setUser(null)
-    }
-  }
-
-  // const fetchNotificationCounts = async () => {
-  //   try {
-  //     const response = await fetch(`${process.env.NEXT_PUBLIC_API}/${user?.userType}/notification-counts`, { credentials: 'include' })
-  //     if (response.ok) {
-  //       const data = await response.json()
-  //       setNotificationCounts(data)
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching notification counts:', error)
-  //   }
-  // }
 
   const handleLogout = async () => {
     try {
@@ -138,6 +97,9 @@ export default function Navbar() {
     return null
   }
 
+  const isOwner = pathname.includes('/owner')
+  const isTenant = pathname.includes('/tenant')
+
   return (
     <nav className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -147,7 +109,7 @@ export default function Navbar() {
               <span className="text-xl font-bold">House Rental</span>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              {user.userType === 'owner' ? (
+              {isOwner && (
                 <>
                   <Link href="/owner/tenants">
                     <Button variant="ghost">
@@ -167,20 +129,21 @@ export default function Navbar() {
                       Payment Status
                     </Button>
                   </Link>
-                  {/* <ButtonWithNotification 
+                  <ButtonWithNotification 
                     href="/owner/applications" 
                     icon={FileText} 
                     label="Applications" 
-                     count={notificationCounts.applications} 
+                    count={0} 
                   />
                   <ButtonWithNotification 
                     href="/owner/service-requests" 
                     icon={Wrench} 
                     label="Service Requests" 
-                    count={notificationCounts.serviceRequests} 
-                  /> */}
+                    count={0} 
+                  />
                 </>
-              ) : (
+              )}
+              {isTenant && (
                 <>
                   <Link href="/tenant/owner-details">
                     <Button variant="ghost">
@@ -200,18 +163,18 @@ export default function Navbar() {
                       Flats Info
                     </Button>
                   </Link>
-                  {/* <ButtonWithNotification 
+                  <ButtonWithNotification 
                     href="/tenant/applications" 
                     icon={FileText} 
                     label="Applications" 
-                    count={notificationCounts.applications} 
+                    count={0} 
                   />
                   <ButtonWithNotification 
                     href="/tenant/service-requests" 
                     icon={Wrench} 
                     label="Service Requests" 
-                    count={notificationCounts.serviceRequests} 
-                  /> */}
+                    count={0} 
+                  />
                 </>
               )}
             </div>
@@ -222,4 +185,5 @@ export default function Navbar() {
         </div>
       </div>
     </nav>
-  )}
+  )
+}

@@ -54,7 +54,7 @@ export default function OwnerProfilePage() {
     if (!profile) return
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/user-info`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/update-info`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profile),
@@ -87,7 +87,7 @@ export default function OwnerProfilePage() {
     }
 
     try {
-      const response = await fetch('/api/owner/change-password', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/update-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newPassword }),

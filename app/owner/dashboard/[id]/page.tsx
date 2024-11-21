@@ -90,7 +90,17 @@ export default function BuildingPage({ params }: { params: { id: string } }) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(editingFlat),
+        body: JSON.stringify({
+          flat_number: editingFlat.flat_number,
+          area: editingFlat.area.toString(),
+          rooms: editingFlat.rooms.toString(),
+          bath: editingFlat.bath.toString(),
+          balcony: editingFlat.balcony.toString(),
+          description: editingFlat.description,
+          status: editingFlat.status.toString(),
+          rent: editingFlat.rent.toString(),
+          tenancy_type: editingFlat.tenancy_type.toString()
+        }),
       })
 
       if (!response.ok) {
@@ -283,6 +293,15 @@ export default function BuildingPage({ params }: { params: { id: string } }) {
                     <form onSubmit={handleEditFlat} className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
+                          <Label htmlFor="flat_number">Flat Number</Label>
+                          <Input
+                            id="flat_number"
+                            value={editingFlat?.flat_number}
+                            onChange={(e) => setEditingFlat(prev => ({ ...prev!, flat_number: e.target.value }))}
+                            required
+                          />
+                        </div>
+                        <div>
                           <Label htmlFor="area">Area (sq ft)</Label>
                           <Input
                             id="area"
@@ -392,4 +411,5 @@ export default function BuildingPage({ params }: { params: { id: string } }) {
         <p className="text-center mt-4">No flats available for this building.</p>
       )}
     </div>
-  )}
+  )
+}

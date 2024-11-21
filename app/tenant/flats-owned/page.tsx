@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
@@ -26,6 +27,7 @@ export default function FlatsInfoPage() {
   const [flatDetails, setFlatDetails] = useState<FlatDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     fetchFlatDetails()
@@ -39,7 +41,7 @@ export default function FlatsInfoPage() {
       if (data.success && data.data && data.data.length > 0) {
         setFlatDetails(data.data[0])
       } else {
-        throw new Error('No flat details found')
+        setFlatDetails(null)
       }
     } catch (error) {
       console.error('Error fetching flat details:', error)
@@ -66,7 +68,7 @@ export default function FlatsInfoPage() {
         //   title: "Success",
         //   description: "You have successfully left the tenancy.",
         // })
-        setFlatDetails(null)
+        router.push('/tenant/dashboard')
       } else {
         throw new Error(data.message || 'Failed to leave tenancy')
       }
@@ -91,7 +93,23 @@ export default function FlatsInfoPage() {
   }
 
   if (!flatDetails) {
-    return <div className="text-center mt-8 text-red-500">No active tenancy found</div>
+    return (
+      <div className="container mx-auto p-4">
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>No Active Tenancy</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-gray-600">You are not currently in any tenancy.</p>
+            <div className="mt-4 flex justify-center">
+              <Button onClick={() => router.push('/tenant/dashboard')}>
+                Go to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -170,4 +188,5 @@ export default function FlatsInfoPage() {
         </CardContent>
       </Card>
     </div>
-  )}
+  )
+}

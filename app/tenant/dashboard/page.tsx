@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Search, Home, DollarSign, MapPin, Bath, BedDouble, Wind, RefreshCw } from 'lucide-react'
@@ -37,6 +38,8 @@ export default function TenantDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSearchActive, setIsSearchActive] = useState(false)
+  const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false)
+  const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null)
   const [searchCriteria, setSearchCriteria] = useState({
     area: '',
     flat_number: '',
@@ -46,6 +49,7 @@ export default function TenantDashboard() {
     minRent: 0,
     maxRent: 50000,
   })
+  const router = useRouter()
 
   useEffect(() => {
     fetchFlats()
@@ -63,8 +67,12 @@ export default function TenantDashboard() {
       }
       const data = await response.json()
       if (data.success && Array.isArray(data.data)) {
-        setFlats(data.data)
-        setFilteredFlats(data.data)
+        const vacantFlats = data.data.filter((flat: Flat) => flat.status === 0)
+        const sortedFlats = vacantFlats.sort((a: Flat, b: Flat) => 
+          new Date(b.creation_date).getTime() - new Date(a.creation_date).getTime()
+        )
+        setFlats(sortedFlats)
+        setFilteredFlats(sortedFlats)
       } else {
         throw new Error('Invalid data format received from API')
       }
@@ -112,8 +120,15 @@ export default function TenantDashboard() {
   }
 
   const handleApply = async (flatId: number) => {
+    setSelectedFlatId(flatId)
+    setIsApplyDialogOpen(true)
+  }
+
+  const confirmApply = async () => {
+    if (!selectedFlatId) return
+
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/make-applications/${flatId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/make-applications/${selectedFlatId}`, {
         method: 'POST',
         credentials: 'include'
       })
@@ -124,6 +139,8 @@ export default function TenantDashboard() {
       //   title: "Application Submitted",
       //   description: "Your application has been successfully submitted.",
       // })
+      setIsApplyDialogOpen(false)
+      router.push('/tenant/dashboard')
     } catch (error) {
       console.error('Error applying for flat:', error)
       // toast({
@@ -153,7 +170,7 @@ export default function TenantDashboard() {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Available Flats</h1>
+        <h1 className="text-2xl font-bold">Recently Posted Flats</h1>
         <div className="space-x-2">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -296,6 +313,21 @@ export default function TenantDashboard() {
       ) : (
         <p className="text-center mt-4">No flats found matching your criteria.</p>
       )}
+
+      <Dialog open={isApplyDialogOpen} onOpenChange={setIsApplyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Application</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to apply for this flat? An application will be sent to the respective owner.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsApplyDialogOpen(false)}>Cancel</Button>
+            <Button onClick={confirmApply}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
