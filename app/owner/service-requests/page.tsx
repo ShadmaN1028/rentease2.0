@@ -6,19 +6,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Info } from 'lucide-react'
-// import { toast } from "@/components/ui/use-toast"
+import { Loader2, Info, CheckCircle, X } from 'lucide-react'
 
 interface ServiceRequest {
-  id: string
-  flatNumber: string
-  buildingName: string
-  tenantName: string
-  requestType: string
+  request_id: string
+  flats_id: string
+  user_id: string
+  request_type: string
   description: string
-  status: 'pending' | 'in_progress' | 'completed'
-  createdAt: string
+  status: number
+  creation_date: string
+  flat_number: string
+  building_name: string
+  tenant_name: string
 }
 
 export default function ServiceRequests() {
@@ -27,7 +27,6 @@ export default function ServiceRequests() {
   const [error, setError] = useState<string | null>(null)
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [response, setResponse] = useState('')
 
   useEffect(() => {
     fetchServiceRequests()
@@ -37,15 +36,18 @@ export default function ServiceRequests() {
     setIsLoading(true)
     setError(null)
     try {
-      // Replace this with your actual API call
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/service-requests`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/pending-request`, {
         credentials: 'include',
       })
       if (!response.ok) {
         throw new Error('Failed to fetch service requests')
       }
       const data = await response.json()
-      setServiceRequests(data.serviceRequests)
+      if (data.success) {
+        setServiceRequests(data.data)
+      } else {
+        throw new Error(data.message || 'Failed to fetch service requests')
+      }
     } catch (err) {
       setError('An error occurred while fetching service requests. Please try again.')
       console.error('Error fetching service requests:', err)
@@ -59,39 +61,47 @@ export default function ServiceRequests() {
     setIsDialogOpen(true)
   }
 
-  const handleResponseSubmit = async () => {
-    if (!selectedRequest) return
-
+  const handleApproveRequest = async (requestId: string) => {
     try {
-      // Replace this with your actual API call
-      const apiResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/service-requests/${selectedRequest.id}/respond`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/approve-request/${requestId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ response }),
         credentials: 'include',
       })
-
-      if (!apiResponse.ok) {
-        throw new Error('Failed to submit response')
+      if (!response.ok) {
+        throw new Error('Failed to approve request')
       }
-
-      // toast({
-      //   title: "Response Sent",
-      //   description: "Your response has been sent to the tenant.",
-      // })
-
-      setIsDialogOpen(false)
-      setResponse('')
-      fetchServiceRequests() // Refresh the list
+      const data = await response.json()
+      if (data.success) {
+        
+        fetchServiceRequests() // Refresh the list
+      } else {
+        throw new Error(data.message || 'Failed to approve request')
+      }
     } catch (err) {
-      console.error('Error submitting response:', err)
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to send response. Please try again.",
-      //   variant: "destructive",
-      // })
+      console.error('Error approving request:', err)
+      
+    }
+  }
+
+  const handleDenyRequest = async (requestId: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/owner/deny-request/${requestId}`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (!response.ok) {
+        throw new Error('Failed to deny request')
+      }
+      const data = await response.json()
+      if (data.success) {
+        
+        fetchServiceRequests() // Refresh the list
+      } else {
+        throw new Error(data.message || 'Failed to deny request')
+      }
+    } catch (err) {
+      console.error('Error denying request:', err)
+      
     }
   }
 
@@ -117,7 +127,7 @@ export default function ServiceRequests() {
     <div className="container mx-auto p-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Service Requests</CardTitle>
+          <CardTitle className="text-2xl font-bold">Pending Service Requests</CardTitle>
         </CardHeader>
         <CardContent>
           {serviceRequests.length > 0 ? (
@@ -128,31 +138,37 @@ export default function ServiceRequests() {
                   <TableHead>Building</TableHead>
                   <TableHead>Tenant</TableHead>
                   <TableHead>Request Type</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Created At</TableHead>
-                  <TableHead>Action</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {serviceRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell>{request.flatNumber}</TableCell>
-                    <TableCell>{request.buildingName}</TableCell>
-                    <TableCell>{request.tenantName}</TableCell>
-                    <TableCell>{request.requestType}</TableCell>
-                    <TableCell>{request.status}</TableCell>
-                    <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
+                  <TableRow key={request.request_id}>
+                    <TableCell>{request.flat_number}</TableCell>
+                    <TableCell>{request.building_name}</TableCell>
+                    <TableCell>{request.tenant_name}</TableCell>
+                    <TableCell>{request.request_type}</TableCell>
+                    <TableCell>{new Date(request.creation_date).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      <Button onClick={() => handleDetailsClick(request)} size="sm">
-                        <Info className="mr-2 h-4 w-4" /> Details
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button onClick={() => handleDetailsClick(request)} size="sm" variant="outline">
+                          <Info className="mr-2 h-4 w-4" /> Details
+                        </Button>
+                        <Button onClick={() => handleApproveRequest(request.request_id)} size="sm" variant="default">
+                          <CheckCircle className="mr-2 h-4 w-4" /> Approve
+                        </Button>
+                        <Button onClick={() => handleDenyRequest(request.request_id)} size="sm" variant="destructive">
+                          <X className="mr-2 h-4 w-4" /> Deny
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <p className="text-center py-4">No service requests found.</p>
+            <p className="text-center py-4">No pending service requests found.</p>
           )}
         </CardContent>
       </Card>
@@ -163,23 +179,17 @@ export default function ServiceRequests() {
             <DialogTitle>Service Request Details</DialogTitle>
           </DialogHeader>
           {selectedRequest && (
-            <div className="mt-2">
-              <p><strong>Flat:</strong> {selectedRequest.flatNumber}</p>
-              <p><strong>Building:</strong> {selectedRequest.buildingName}</p>
-              <p><strong>Tenant:</strong> {selectedRequest.tenantName}</p>
-              <p><strong>Request Type:</strong> {selectedRequest.requestType}</p>
+            <div className="mt-2 space-y-2">
+              <p><strong>Flat:</strong> {selectedRequest.flat_number}</p>
+              <p><strong>Building:</strong> {selectedRequest.building_name}</p>
+              <p><strong>Tenant:</strong> {selectedRequest.tenant_name}</p>
+              <p><strong>Request Type:</strong> {selectedRequest.request_type}</p>
               <p><strong>Description:</strong> {selectedRequest.description}</p>
-              <p><strong>Status:</strong> {selectedRequest.status}</p>
-              <p><strong>Created At:</strong> {new Date(selectedRequest.createdAt).toLocaleString()}</p>
+              <p><strong>Created At:</strong> {new Date(selectedRequest.creation_date).toLocaleString()}</p>
             </div>
           )}
-          <Textarea
-            placeholder="Type your response here..."
-            value={response}
-            onChange={(e) => setResponse(e.target.value)}
-          />
           <DialogFooter>
-            <Button onClick={handleResponseSubmit}>Send Response</Button>
+            <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

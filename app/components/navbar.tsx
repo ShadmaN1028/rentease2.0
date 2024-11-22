@@ -85,15 +85,15 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/logout', { method: 'POST', credentials: 'include' })
+      await fetch('${process.env.NEXT_PUBLIC_API}/logout', { method: 'POST', credentials: 'include' })
       setUser(null)
-      router.push('/login')
+      router.push('/signin')
     } catch (error) {
       console.error('Error logging out:', error)
     }
   }
 
-  if (!user || pathname.startsWith('/login') || pathname.startsWith('/signup')) {
+  if (!user || pathname.startsWith('/signin') || pathname.startsWith('/signup')) {
     return null
   }
 
@@ -111,7 +111,7 @@ export default function Navbar() {
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               {isOwner && (
                 <>
-                  <Link href="/owner/tenants">
+                  <Link href="/owner/tenancy-list">
                     <Button variant="ghost">
                       <Users className="mr-2 h-4 w-4" />
                       Tenants List
@@ -157,10 +157,10 @@ export default function Navbar() {
                       Payment Status
                     </Button>
                   </Link>
-                  <Link href="/tenant/flats">
+                  <Link href="/tenant/flats-owned">
                     <Button variant="ghost">
                       <Home className="mr-2 h-4 w-4" />
-                      Flats Info
+                      My Flat
                     </Button>
                   </Link>
                   <ButtonWithNotification 

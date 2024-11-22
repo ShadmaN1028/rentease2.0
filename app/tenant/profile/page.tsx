@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2 } from 'lucide-react'
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Loader2, AlertCircle } from 'lucide-react'
 
 interface TenantProfile {
   user_id: string
@@ -23,28 +24,33 @@ interface TenantProfile {
 export default function TenantProfilePage() {
   const [profile, setProfile] = useState<TenantProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editedProfile, setEditedProfile] = useState<TenantProfile | null>(null)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const router = useRouter()
 
   useEffect(() => {
     fetchProfile()
   }, [])
 
   const fetchProfile = async () => {
+    setIsLoading(true)
+    setError(null)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/user-info`, { credentials: 'include' })
       if (!response.ok) throw new Error('Failed to fetch profile')
       const data = await response.json()
       if (data.success) {
         setProfile(data.data)
+        setEditedProfile(data.data)
       } else {
         throw new Error(data.message || 'Failed to fetch profile')
       }
     } catch (error) {
       console.error('Error fetching profile:', error)
-      
+      setError('Failed to load profile. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -52,26 +58,27 @@ export default function TenantProfilePage() {
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!profile) return
+    if (!editedProfile) return
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/update-info`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          permanent_address: profile.permanent_address,
-          contact_number: profile.contact_number,
-          occupation: profile.occupation,
+          first_name: editedProfile.first_name,
+          last_name: editedProfile.last_name,
+          permanent_address: editedProfile.permanent_address,
+          contact_number: editedProfile.contact_number,
+          occupation: editedProfile.occupation,
         }),
         credentials: 'include',
       })
       if (!response.ok) throw new Error('Failed to update profile')
       const data = await response.json()
       if (data.success) {
+        setProfile(editedProfile)
+        setIsEditDialogOpen(false)
         
-        fetchProfile() // Refresh the profile data
       } else {
         throw new Error(data.message || 'Failed to update profile')
       }
@@ -98,7 +105,7 @@ export default function TenantProfilePage() {
       if (!response.ok) throw new Error('Failed to change password')
       const data = await response.json()
       if (data.success) {
-        
+       
         setCurrentPassword('')
         setNewPassword('')
         setConfirmPassword('')
@@ -119,8 +126,19 @@ export default function TenantProfilePage() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto p-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
   if (!profile) {
-    return <div>Error loading profile</div>
+    return <div>No profile data available</div>
   }
 
   return (
@@ -131,65 +149,89 @@ export default function TenantProfilePage() {
           <CardTitle>Personal Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleProfileUpdate} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="first_name">First Name</Label>
-                <Input
-                  id="first_name"
-                  value={profile.first_name}
-                  onChange={(e) => setProfile({...profile, first_name: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label htmlFor="last_name">Last Name</Label>
-                <Input
-                  id="last_name"
-                  value={profile.last_name}
-                  onChange={(e) => setProfile({...profile, last_name: e.target.value})}
-                />
-              </div>
+          <div className="space-y-4">
+            <div>
+              <Label>Email</Label>
+              <Input value={profile.user_email} disabled />
             </div>
             <div>
-              <Label htmlFor="user_email">Email</Label>
-              <Input
-                id="user_email"
-                type="email"
-                value={profile.user_email}
-                disabled
-              />
+              <Label>NID</Label>
+              <Input value={profile.nid} disabled />
             </div>
             <div>
-              <Label htmlFor="contact_number">Phone</Label>
-              <Input
-                id="contact_number"
-                value={profile.contact_number}
-                onChange={(e) => setProfile({...profile, contact_number: e.target.value})}
-              />
+              <Label>First Name</Label>
+              <Input value={profile.first_name} disabled />
             </div>
             <div>
-              <Label htmlFor="nid">NID</Label>
-              <Input id="nid" value={profile.nid} disabled />
+              <Label>Last Name</Label>
+              <Input value={profile.last_name} disabled />
             </div>
             <div>
-              <Label htmlFor="occupation">Occupation</Label>
-              <Input
-                id="occupation"
-                value={profile.occupation}
-                onChange={(e) => setProfile({...profile, occupation: e.target.value})}
-              />
+              <Label>Permanent Address</Label>
+              <Input value={profile.permanent_address} disabled />
             </div>
             <div>
-              <Label htmlFor="permanent_address">Permanent Address</Label>
-              <Textarea
-                id="permanent_address"
-                value={profile.permanent_address}
-                onChange={(e) => setProfile({...profile, permanent_address: e.target.value})}
-                rows={3}
-              />
+              <Label>Contact Number</Label>
+              <Input value={profile.contact_number} disabled />
             </div>
-            <Button type="submit">Update Profile</Button>
-          </form>
+            <div>
+              <Label>Occupation</Label>
+              <Input value={profile.occupation} disabled />
+            </div>
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>Edit Profile</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Profile</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleProfileUpdate} className="space-y-4">
+                  <div>
+                    <Label htmlFor="first_name">First Name</Label>
+                    <Input
+                      id="first_name"
+                      value={editedProfile?.first_name || ''}
+                      onChange={(e) => setEditedProfile(prev => prev ? {...prev, first_name: e.target.value} : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="last_name">Last Name</Label>
+                    <Input
+                      id="last_name"
+                      value={editedProfile?.last_name || ''}
+                      onChange={(e) => setEditedProfile(prev => prev ? {...prev, last_name: e.target.value} : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="permanent_address">Permanent Address</Label>
+                    <Textarea
+                      id="permanent_address"
+                      value={editedProfile?.permanent_address || ''}
+                      onChange={(e) => setEditedProfile(prev => prev ? {...prev, permanent_address: e.target.value} : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contact_number">Contact Number</Label>
+                    <Input
+                      id="contact_number"
+                      value={editedProfile?.contact_number || ''}
+                      onChange={(e) => setEditedProfile(prev => prev ? {...prev, contact_number: e.target.value} : null)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="occupation">Occupation</Label>
+                    <Input
+                      id="occupation"
+                      value={editedProfile?.occupation || ''}
+                      onChange={(e) => setEditedProfile(prev => prev ? {...prev, occupation: e.target.value} : null)}
+                    />
+                  </div>
+                  <Button type="submit">Update Profile</Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardContent>
       </Card>
 
