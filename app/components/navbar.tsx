@@ -156,6 +156,12 @@ export default function Navbar() {
                       Owner Details
                     </Button>
                   </Link>
+                  <Link href="/tenant/notifications">
+                    <Button variant="ghost">
+                      <User className="mr-2 h-4 w-4" />
+                      Notifications
+                    </Button>
+                  </Link>
                   <ButtonWithNotification 
                     href="/tenant/applications" 
                     icon={FileText} 

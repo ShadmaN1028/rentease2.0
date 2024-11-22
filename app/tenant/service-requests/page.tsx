@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, AlertCircle, Clock, CheckCircle, XCircle } from 'lucide-react'
 
+
 interface ServiceRequest {
   request_id: string
-  request_type: string
+  request_type: number
   description: string
   status: number
   creation_date: string
@@ -28,7 +29,7 @@ export default function ServiceRequestPage() {
   const [requests, setRequests] = useState<ServiceRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [requestType, setRequestType] = useState('')
+  const [requestType, setRequestType] = useState<string>('')
   const [description, setDescription] = useState('')
   const [tenancy, setTenancy] = useState<Tenancy | null>(null)
 
@@ -78,11 +79,16 @@ export default function ServiceRequestPage() {
       return
     }
 
+    if (!requestType || !description) {
+      
+      return
+    }
+
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/make-requests/${tenancy.flats_id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request_type: requestType, description }),
+        body: JSON.stringify({ request_type: parseInt(requestType), description }),
         credentials: 'include',
       })
       if (!response.ok) throw new Error('Failed to submit service request')
@@ -142,9 +148,9 @@ export default function ServiceRequestPage() {
                     <SelectValue placeholder="Select request type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                    <SelectItem value="repair">Repair</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="0">Maintenance</SelectItem>
+                    <SelectItem value="1">Repair</SelectItem>
+                    <SelectItem value="2">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -180,7 +186,11 @@ export default function ServiceRequestPage() {
             <Card key={request.request_id}>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>{request.request_type}</span>
+                  <span>
+                    {request.request_type === 0 ? 'Maintenance' :
+                     request.request_type === 1 ? 'Repair' :
+                     request.request_type === 2 ? 'Other' : 'Unknown'}
+                  </span>
                   {request.status === 0 && <Clock className="h-5 w-5 text-yellow-500" />}
                   {request.status === 1 && <CheckCircle className="h-5 w-5 text-green-500" />}
                   {request.status === 2 && <XCircle className="h-5 w-5 text-red-500" />}
