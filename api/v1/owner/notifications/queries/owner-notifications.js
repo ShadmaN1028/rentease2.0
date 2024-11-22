@@ -1,7 +1,7 @@
 const table_name = "notifications";
 
 const queries = {
-  getTenancyList: `SELECT t.*, u.first_name, u.last_name, f.flat_number FROM tenancies t join users u on t.user_id = u.user_id join flats f on t.flats_id = f.flats_id WHERE t.owner_id = ?`,
+  getTenancyList: `SELECT t.*, u.first_name, u.last_name, f.flat_number FROM tenancies t join users u on t.user_id = u.user_id join flats f on t.flats_id = f.flats_id WHERE t.owner_id = ? AND t.status = 1 `,
   sendNotifications: `
       INSERT INTO ${table_name} (user_id, owner_id, description, status, created_by, creation_date, last_updated_by, last_update_date, change_number) 
        VALUES (?, ?, ?, 0, ?, CURRENT_TIMESTAMP(), ?,  CURRENT_TIMESTAMP(), 1)

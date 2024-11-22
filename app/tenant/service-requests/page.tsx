@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, AlertCircle, Clock, CheckCircle, XCircle } from 'lucide-react'
 
+
 interface ServiceRequest {
   request_id: string
   request_type: string
@@ -49,6 +50,7 @@ export default function ServiceRequestPage() {
       }
     } catch (error) {
       console.error('Error fetching tenancy information:', error)
+      
     }
   }
 
@@ -73,12 +75,11 @@ export default function ServiceRequestPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!tenancy) {
-      console.error('Tenancy information is missing')
+      
       return
     }
 
     try {
-      console.log('Submitting request with data:', { requestType, description })
       const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/make-requests/${tenancy.flats_id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,7 +89,7 @@ export default function ServiceRequestPage() {
       if (!response.ok) throw new Error('Failed to submit service request')
       const data = await response.json()
       if (data.success) {
-        console.log('Service request submitted successfully')
+        
         setRequestType('')
         setDescription('')
         fetchRequests()
@@ -97,6 +98,7 @@ export default function ServiceRequestPage() {
       }
     } catch (error) {
       console.error('Error submitting service request:', error)
+      
     }
   }
 
