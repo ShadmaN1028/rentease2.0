@@ -45,11 +45,11 @@ export default function ApplicationsPage() {
 
   const getStatusBadge = (status: number) => {
     switch (status) {
-      case 1:
+      case 0:
         return <Badge variant="secondary">Pending</Badge>
-      case 2:
+      case 1:
         return <Badge variant="default">Approved</Badge>
-      case 3:
+      case 2:
         return <Badge variant="destructive">Rejected</Badge>
       default:
         return <Badge variant="outline">Unknown</Badge>
@@ -58,11 +58,11 @@ export default function ApplicationsPage() {
 
   const getStatusIcon = (status: number) => {
     switch (status) {
-      case 1:
+      case 0:
         return <Clock className="mr-2 h-4 w-4 text-yellow-500" />
-      case 2:
+      case 1:
         return <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-      case 3:
+      case 2:
         return <XCircle className="mr-2 h-4 w-4 text-red-500" />
       default:
         return <AlertCircle className="mr-2 h-4 w-4 text-gray-500" />

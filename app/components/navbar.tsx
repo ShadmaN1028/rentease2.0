@@ -11,10 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Users, Bell, CreditCard, FileText, Wrench, User, LogOut, Home } from 'lucide-react'
+import { Users, Bell, CreditCard, FileText, Wrench, User, LogOut, Home, UserCircle } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
-import Image from "next/image";
 
 interface User {
   firstName: string
@@ -24,18 +22,14 @@ interface User {
 
 const ProfileDropdown = ({ user, onLogout }: { user: User; onLogout: () => void }) => {
   const router = useRouter()
-  
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-      <Image
-                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName)}`}
-                      alt={user.firstName}
-                      width={25}
-                      height={25}
-                      className="rounded-full"
-                    />
+        <Button variant="ghost" size="icon">
+          <UserCircle className="h-6 w-6" />
+          <span className="sr-only">Open user menu</span>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => router.push(`/${user.userType}/profile`)}>
@@ -90,7 +84,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await fetch('${process.env.NEXT_PUBLIC_API}/logout', { method: 'POST', credentials: 'include' })
+      await fetch(`${process.env.NEXT_PUBLIC_API}/logout`, { method: 'POST', credentials: 'include' })
       setUser(null)
       router.push('/signin')
     } catch (error) {
@@ -162,13 +156,6 @@ export default function Navbar() {
                       Owner Details
                     </Button>
                   </Link>
-                  {/* <Link href="/tenant/payments">
-                    <Button variant="ghost">
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Payment Status
-                    </Button>
-                  </Link> */}
-                  
                   <ButtonWithNotification 
                     href="/tenant/applications" 
                     icon={FileText} 

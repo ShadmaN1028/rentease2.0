@@ -221,8 +221,8 @@ export default function AddFlatPage({ params }: { params: { id: string } }) {
                   <SelectValue placeholder="Select tenancy type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Bachelor</SelectItem>
-                  <SelectItem value="2">Family</SelectItem>
+                  <SelectItem value="2">Bachelor</SelectItem>
+                  <SelectItem value="1">Family</SelectItem>
                 </SelectContent>
               </Select>
             </div>

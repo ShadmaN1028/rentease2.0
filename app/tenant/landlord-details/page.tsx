@@ -2,15 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, User, Phone, Mail, Building } from 'lucide-react'
-// import { toast } from "@/components/ui/use-toast"
+import { Loader2, User, Phone, MapPin } from 'lucide-react'
 
 interface OwnerDetails {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  companyName: string
+  first_name: string
+  last_name: string
+  contact_number: string
+  address: string
+  building_name: string
 }
 
 export default function OwnerDetailsPage() {
@@ -23,17 +22,17 @@ export default function OwnerDetailsPage() {
 
   const fetchOwnerDetails = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/check-tenancy`, { credentials: 'include' })
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/get-tenancy-info`, { credentials: 'include' })
       if (!response.ok) throw new Error('Failed to fetch owner details')
       const data = await response.json()
-      setOwnerDetails(data)
+      if (data.success && data.data && data.data.length > 0) {
+        setOwnerDetails(data.data[0])
+      } else {
+        throw new Error('No owner details found')
+      }
     } catch (error) {
       console.error('Error fetching owner details:', error)
-    //   toast({
-    //     title: "Error",
-    //     description: "Failed to load owner details. Please try again.",
-    //     variant: "destructive",
-    //   })
+      
     } finally {
       setIsLoading(false)
     }
@@ -48,7 +47,7 @@ export default function OwnerDetailsPage() {
   }
 
   if (!ownerDetails) {
-    return <div>Error loading owner details</div>
+    return <div className="text-center text-red-500">Error loading owner details</div>
   }
 
   return (
@@ -61,19 +60,19 @@ export default function OwnerDetailsPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-4">
             <User className="h-5 w-5" />
-            <span>{ownerDetails.firstName} {ownerDetails.lastName}</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Mail className="h-5 w-5" />
-            <span>{ownerDetails.email}</span>
+            <span>{ownerDetails.first_name} {ownerDetails.last_name}</span>
           </div>
           <div className="flex items-center space-x-4">
             <Phone className="h-5 w-5" />
-            <span>{ownerDetails.phone}</span>
+            <span>{ownerDetails.contact_number}</span>
           </div>
           <div className="flex items-center space-x-4">
-            <Building className="h-5 w-5" />
-            <span>{ownerDetails.companyName}</span>
+            <MapPin className="h-5 w-5" />
+            <span>{ownerDetails.address}</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <MapPin className="h-5 w-5" />
+            <span>{ownerDetails.building_name}</span>
           </div>
         </CardContent>
       </Card>
