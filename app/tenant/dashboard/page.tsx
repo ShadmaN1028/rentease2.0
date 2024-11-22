@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Search, Home, DollarSign, MapPin, Bath, BedDouble, Wind, RefreshCw } from 'lucide-react'
-// import { toast } from "@/components/ui/use-toast"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Loader2, Search, Home, DollarSign, MapPin, Bath, BedDouble, Wind, RefreshCw, Building, Car } from 'lucide-react'
 
 interface Flat {
   flats_id: number
@@ -29,6 +28,18 @@ interface Flat {
   last_updated_by: string
   last_update_date: string
   change_number: string
+  building_name: string
+  address: string
+  parking: boolean
+}
+
+interface SearchCriteria {
+  rooms: string
+  bath: string
+  balcony: string
+  parking: boolean
+  area: string
+  address: string
 }
 
 export default function TenantDashboard() {
@@ -40,14 +51,13 @@ export default function TenantDashboard() {
   const [isSearchActive, setIsSearchActive] = useState(false)
   const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false)
   const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null)
-  const [searchCriteria, setSearchCriteria] = useState({
-    area: '',
-    flat_number: '',
+  const [searchCriteria, setSearchCriteria] = useState<SearchCriteria>({
     rooms: '',
     bath: '',
-    balcony: false,
-    minRent: 0,
-    maxRent: 50000,
+    balcony: '',
+    parking: false,
+    area: '',
+    address: '',
   })
   const router = useRouter()
 
@@ -67,23 +77,15 @@ export default function TenantDashboard() {
       }
       const data = await response.json()
       if (data.success && Array.isArray(data.data)) {
-        const vacantFlats = data.data.filter((flat: Flat) => flat.status === 0)
-        const sortedFlats = vacantFlats.sort((a: Flat, b: Flat) => 
-          new Date(b.creation_date).getTime() - new Date(a.creation_date).getTime()
-        )
-        setFlats(sortedFlats)
-        setFilteredFlats(sortedFlats)
+        setFlats(data.data)
+        setFilteredFlats(data.data)
       } else {
         throw new Error('Invalid data format received from API')
       }
     } catch (error) {
       console.error('Error fetching flats:', error)
       setError('Failed to fetch available flats. Please try again.')
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to fetch available flats. Please try again.",
-      //   variant: "destructive",
-      // })
+      
     } finally {
       setIsLoading(false)
     }
@@ -91,13 +93,12 @@ export default function TenantDashboard() {
 
   const handleSearch = () => {
     const filtered = flats.filter(flat => {
-      if (searchCriteria.area && !flat.area.toLowerCase().includes(searchCriteria.area.toLowerCase())) return false
-      if (searchCriteria.flat_number && !flat.flat_number.toLowerCase().includes(searchCriteria.flat_number.toLowerCase())) return false
       if (searchCriteria.rooms && flat.rooms < parseInt(searchCriteria.rooms)) return false
       if (searchCriteria.bath && flat.bath < parseInt(searchCriteria.bath)) return false
-      if (searchCriteria.balcony && flat.balcony === 0) return false
-      const rentValue = parseFloat(flat.rent)
-      if (rentValue < searchCriteria.minRent || rentValue > searchCriteria.maxRent) return false
+      if (searchCriteria.balcony && flat.balcony < parseInt(searchCriteria.balcony)) return false
+      if (searchCriteria.parking && !flat.parking) return false
+      if (searchCriteria.area && !flat.area.toLowerCase().includes(searchCriteria.area.toLowerCase())) return false
+      if (searchCriteria.address && !flat.address.toLowerCase().includes(searchCriteria.address.toLowerCase())) return false
       return true
     })
     setFilteredFlats(filtered)
@@ -107,13 +108,12 @@ export default function TenantDashboard() {
 
   const resetSearch = () => {
     setSearchCriteria({
-      area: '',
-      flat_number: '',
       rooms: '',
       bath: '',
-      balcony: false,
-      minRent: 0,
-      maxRent: 50000,
+      balcony: '',
+      parking: false,
+      area: '',
+      address: '',
     })
     setFilteredFlats(flats)
     setIsSearchActive(false)
@@ -135,19 +135,12 @@ export default function TenantDashboard() {
       if (!response.ok) {
         throw new Error('Failed to apply for flat')
       }
-      // toast({
-      //   title: "Application Submitted",
-      //   description: "Your application has been successfully submitted.",
-      // })
+      
       setIsApplyDialogOpen(false)
       router.push('/tenant/dashboard')
     } catch (error) {
       console.error('Error applying for flat:', error)
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to submit application. Please try again.",
-      //   variant: "destructive",
-      // })
+      
     }
   }
 
@@ -170,12 +163,12 @@ export default function TenantDashboard() {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Recently Posted Flats</h1>
+        <h1 className="text-2xl font-bold">Available Flats</h1>
         <div className="space-x-2">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
-                <Search className="mr-2 h-4 w-4" /> Advanced Search
+                <Search className="mr-2 h-4 w-4" /> Search Flats
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
@@ -183,28 +176,6 @@ export default function TenantDashboard() {
                 <DialogTitle>Search Flats</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="area" className="text-right">
-                    Area
-                  </Label>
-                  <Input
-                    id="area"
-                    value={searchCriteria.area}
-                    onChange={(e) => setSearchCriteria({...searchCriteria, area: e.target.value})}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="flat_number" className="text-right">
-                    Flat Number
-                  </Label>
-                  <Input
-                    id="flat_number"
-                    value={searchCriteria.flat_number}
-                    onChange={(e) => setSearchCriteria({...searchCriteria, flat_number: e.target.value})}
-                    className="col-span-3"
-                  />
-                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="rooms" className="text-right">
                     Rooms
@@ -235,27 +206,44 @@ export default function TenantDashboard() {
                   </Label>
                   <Input
                     id="balcony"
-                    type="checkbox"
-                    checked={searchCriteria.balcony}
-                    onChange={(e) => setSearchCriteria({...searchCriteria, balcony: e.target.checked})}
+                    type="number"
+                    value={searchCriteria.balcony}
+                    onChange={(e) => setSearchCriteria({...searchCriteria, balcony: e.target.value})}
                     className="col-span-3"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label className="text-right">Rent Range</Label>
-                  <div className="col-span-3">
-                    <Slider
-                      min={0}
-                      max={50000}
-                      step={100}
-                      value={[searchCriteria.minRent, searchCriteria.maxRent]}
-                      onValueChange={(value) => setSearchCriteria({...searchCriteria, minRent: value[0], maxRent: value[1]})}
-                    />
-                    <div className="flex justify-between mt-2">
-                      <span>${searchCriteria.minRent}</span>
-                      <span>${searchCriteria.maxRent}</span>
-                    </div>
-                  </div>
+                  <Label htmlFor="parking" className="text-right">
+                    Parking
+                  </Label>
+                  <Checkbox
+                    id="parking"
+                    checked={searchCriteria.parking}
+                    onCheckedChange={(checked) => setSearchCriteria({...searchCriteria, parking: checked as boolean})}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="area" className="text-right">
+                    Area
+                  </Label>
+                  <Input
+                    id="area"
+                    value={searchCriteria.area}
+                    onChange={(e) => setSearchCriteria({...searchCriteria, area: e.target.value})}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="address" className="text-right">
+                    Address
+                  </Label>
+                  <Input
+                    id="address"
+                    value={searchCriteria.address}
+                    onChange={(e) => setSearchCriteria({...searchCriteria, address: e.target.value})}
+                    className="col-span-3"
+                  />
                 </div>
               </div>
               <Button onClick={handleSearch}>Search</Button>
@@ -278,11 +266,19 @@ export default function TenantDashboard() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex items-center">
+                    <Building className="mr-2 h-4 w-4" />
+                    <span>{flat.building_name}</span>
+                  </div>
+                  <div className="flex items-center">
                     <MapPin className="mr-2 h-4 w-4" />
-                    <span>Area: {flat.area} sq ft</span>
+                    <span>{flat.address}</span>
                   </div>
                   <div className="flex items-center">
                     <Home className="mr-2 h-4 w-4" />
+                    <span>Area: {flat.area} sq ft</span>
+                  </div>
+                  <div className="flex items-center">
+                    <BedDouble className="mr-2 h-4 w-4" />
                     <span>{flat.rooms} room{flat.rooms > 1 ? 's' : ''}</span>
                   </div>
                   <div className="flex items-center">
@@ -296,8 +292,16 @@ export default function TenantDashboard() {
                     </div>
                   )}
                   <div className="flex items-center">
+                    <Car className="mr-2 h-4 w-4" />
+                    <span>{flat.parking ? 'Parking available' : 'No parking'}</span>
+                  </div>
+                  <div className="flex items-center">
                     <DollarSign className="mr-2 h-4 w-4" />
                     <span>${parseFloat(flat.rent).toFixed(2)}/month</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="font-semibold mr-2">Tenancy Type:</span>
+                    <span>{flat.tenancy_type === 1 ? 'Family' : 'Bachelor'}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <Badge variant="secondary">

@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Users, Bell, CreditCard, FileText, Wrench, User, LogOut, Home } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image";
 
 interface User {
   firstName: string
@@ -23,14 +24,18 @@ interface User {
 
 const ProfileDropdown = ({ user, onLogout }: { user: User; onLogout: () => void }) => {
   const router = useRouter()
-  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
+  
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar className="cursor-pointer">
-          <AvatarFallback>{initials}</AvatarFallback>
-        </Avatar>
+      <Image
+                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName)}`}
+                      alt={user.firstName}
+                      width={25}
+                      height={25}
+                      className="rounded-full"
+                    />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => router.push(`/${user.userType}/profile`)}>
@@ -145,24 +150,25 @@ export default function Navbar() {
               )}
               {isTenant && (
                 <>
-                  <Link href="/tenant/owner-details">
-                    <Button variant="ghost">
-                      <User className="mr-2 h-4 w-4" />
-                      Owner Details
-                    </Button>
-                  </Link>
-                  <Link href="/tenant/payments">
-                    <Button variant="ghost">
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Payment Status
-                    </Button>
-                  </Link>
                   <Link href="/tenant/flats-owned">
                     <Button variant="ghost">
                       <Home className="mr-2 h-4 w-4" />
                       My Flat
                     </Button>
                   </Link>
+                  <Link href="/tenant/landlord-details">
+                    <Button variant="ghost">
+                      <User className="mr-2 h-4 w-4" />
+                      Owner Details
+                    </Button>
+                  </Link>
+                  {/* <Link href="/tenant/payments">
+                    <Button variant="ghost">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Payment Status
+                    </Button>
+                  </Link> */}
+                  
                   <ButtonWithNotification 
                     href="/tenant/applications" 
                     icon={FileText} 

@@ -7,47 +7,49 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, PenToolIcon as Tool, Clock, CheckCircle, XCircle } from 'lucide-react'
-// import { toast } from "@/components/ui/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Loader2, AlertCircle, Clock, CheckCircle, XCircle } from 'lucide-react'
 
 interface ServiceRequest {
-  id: string
+  request_id: string
   request_type: string
   description: string
   status: number
   creation_date: string
 }
 
-interface RentedFlat {
-  id: string
-  title: string
+interface Tenancy {
+  flats_id: string
+  flat_number: string
+  building_name: string
 }
 
 export default function ServiceRequestPage() {
   const [requests, setRequests] = useState<ServiceRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [requestType, setRequestType] = useState('')
   const [description, setDescription] = useState('')
-  const [rentedFlat, setRentedFlat] = useState<RentedFlat | null>(null)
+  const [tenancy, setTenancy] = useState<Tenancy | null>(null)
 
   useEffect(() => {
-    fetchRentedFlat()
+    fetchTenancy()
     fetchRequests()
   }, [])
 
-  const fetchRentedFlat = async () => {
+  const fetchTenancy = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/check-tenancy`, { credentials: 'include' })
-      if (!response.ok) throw new Error('Failed to fetch rented flat')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/get-tenancy-info`, { credentials: 'include' })
+      if (!response.ok) throw new Error('Failed to fetch tenancy information')
       const data = await response.json()
-      setRentedFlat(data)
+      if (data.success && data.data.length > 0) {
+        setTenancy(data.data[0])
+      } else {
+        setTenancy(null)
+      }
     } catch (error) {
-      console.error('Error fetching rented flat:', error)
-    //   toast({
-    //     title: "Error",
-    //     description: "Failed to load rented flat information. Please try again.",
-    //     variant: "destructive",
-    //   })
+      console.error('Error fetching tenancy information:', error)
+      
     }
   }
 
@@ -56,14 +58,14 @@ export default function ServiceRequestPage() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/check-requests`, { credentials: 'include' })
       if (!response.ok) throw new Error('Failed to fetch service requests')
       const data = await response.json()
-      setRequests(data.data)
+      if (data.success) {
+        setRequests(data.data)
+      } else {
+        throw new Error(data.message || 'Failed to fetch service requests')
+      }
     } catch (error) {
       console.error('Error fetching service requests:', error)
-    //   toast({
-    //     title: "Error",
-    //     description: "Failed to load service requests. Please try again.",
-    //     variant: "destructive",
-    //   })
+      setError('Failed to load service requests. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -71,30 +73,27 @@ export default function ServiceRequestPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!rentedFlat) return
+    if (!tenancy) return
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/make-requests/${rentedFlat.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/tenant/make-requests/${tenancy.flats_id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ request_type: requestType, description }),
         credentials: 'include',
       })
       if (!response.ok) throw new Error('Failed to submit service request')
-    //   toast({
-    //     title: "Success",
-    //     description: "Service request submitted successfully.",
-    //   })
-      setRequestType('')
-      setDescription('')
-      fetchRequests() // Refresh the list of requests
+      const data = await response.json()
+      if (data.success) {
+        
+        setRequestType('')
+        setDescription('')
+        fetchRequests() // Refresh the list of requests
+      } else {
+        throw new Error(data.message || 'Failed to submit service request')
+      }
     } catch (error) {
       console.error('Error submitting service request:', error)
-    //   toast({
-    //     title: "Error",
-    //     description: "Failed to submit service request. Please try again.",
-    //     variant: "destructive",
-    //   })
     }
   }
 
@@ -102,6 +101,18 @@ export default function ServiceRequestPage() {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </div>
     )
   }
@@ -114,11 +125,11 @@ export default function ServiceRequestPage() {
           <CardTitle>Submit a New Request</CardTitle>
         </CardHeader>
         <CardContent>
-          {rentedFlat ? (
+          {tenancy ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="flatInfo">Flat</Label>
-                <Input id="flatInfo" value={rentedFlat.title} disabled />
+                <Input id="flatInfo" value={`${tenancy.building_name} - Flat ${tenancy.flat_number}`} disabled />
               </div>
               <div>
                 <Label htmlFor="requestType">Request Type</Label>
@@ -145,10 +156,13 @@ export default function ServiceRequestPage() {
               <Button type="submit">Submit Request</Button>
             </form>
           ) : (
-            <div className="text-center py-4">
-              <p className="text-muted-foreground">You are not currently renting any flat.</p>
-              <p className="text-muted-foreground">Service requests are only available for tenants with active rentals.</p>
-            </div>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Not Applicable</AlertTitle>
+              <AlertDescription>
+                This function is not applicable for the current user. You need to be in a tenancy first to make service requests.
+              </AlertDescription>
+            </Alert>
           )}
         </CardContent>
       </Card>
@@ -159,7 +173,7 @@ export default function ServiceRequestPage() {
       ) : (
         <div className="space-y-4">
           {requests.map((request) => (
-            <Card key={request.id}>
+            <Card key={request.request_id}>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>{request.request_type}</span>
@@ -172,6 +186,13 @@ export default function ServiceRequestPage() {
                 <p>{request.description}</p>
                 <p className="text-sm text-gray-500 mt-2">
                   Submitted on: {new Date(request.creation_date).toLocaleDateString()}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Status: {
+                    request.status === 0 ? 'Pending' :
+                    request.status === 1 ? 'Approved' :
+                    request.status === 2 ? 'Denied' : 'Unknown'
+                  }
                 </p>
               </CardContent>
             </Card>
