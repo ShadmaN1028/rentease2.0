@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, AlertCircle, Clock, CheckCircle, XCircle } from 'lucide-react'
 
-
 interface ServiceRequest {
   request_id: string
   request_type: string
