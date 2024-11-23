@@ -12,10 +12,10 @@ const queries = {
   approveRequest: `
         UPDATE ${table_name} 
         SET ${table_name}.status = 1 
-        WHERE ${table_name}.request_id = 1 AND ${table_name}.flats_id IN (
+        WHERE ${table_name}.request_id = ? AND ${table_name}.flats_id IN (
             SELECT flats.flats_id FROM flats 
             JOIN building ON flats.building_id = building.building_id 
-            WHERE building.owner_id = 1
+            WHERE building.owner_id = ?
         )
     `,
   denyRequest: `
